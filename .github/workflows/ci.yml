@@ -34,7 +34,7 @@ jobs:
       - name: Dependency audit
         run: npm audit --audit-level=high
       - name: gitleaks (full history)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Bundle budget (initial JS under 150 KB gzip)
