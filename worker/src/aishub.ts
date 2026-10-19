@@ -50,6 +50,28 @@ export class AisHub extends DurableObject<Env> {
   private timer: ReturnType<typeof setInterval> | null = null;
   private idleSince = 0;
   private lastSnapshot = 0;
+  /** Relay stays connected until this time even with no map open (the app pings /warm while it is open). */
+  private warmUntil = 0;
+  /** Tankers and gas carriers identified so far (mmsi -> [type, name]), saved so the next session knows them at once. */
+  private registry = new Map<number, [number, string]>();
+  private registrySavedAt = 0;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    void ctx.blockConcurrencyWhile(async () => {
+      const saved = await ctx.storage.get<string>('registry');
+      if (!saved) return;
+      try {
+        for (const [mmsi, type, name] of JSON.parse(saved) as [number, number, string][]) {
+          this.registry.set(mmsi, [type, name]);
+          // Known type and name; position arrives with the next report.
+          this.vessels.set(mmsi, { mmsi, lat: NaN, lon: NaN, sog: null, cog: null, hdg: null, t: 0, type, name });
+        }
+      } catch {
+        // corrupt registry: start fresh
+      }
+    });
+  }
 
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -67,8 +89,15 @@ export class AisHub extends DurableObject<Env> {
       this.ensureTimer();
       return new Response(null, { status: 101, webSocket: client });
     }
+    if (url.pathname.endsWith('/warm')) {
+      // The app is open somewhere: connect now and stay connected 12 minutes past the last ping.
+      this.warmUntil = Date.now() + 12 * 60_000;
+      void this.ensureUpstream();
+      this.ensureTimer();
+      return new Response(JSON.stringify({ status: this.status, vessels: this.vessels.size, known: this.registry.size }), { headers: { 'content-type': 'application/json' } });
+    }
     if (url.pathname.endsWith('/debug')) {
-      return new Response(JSON.stringify({ status: this.status, lastError: this.lastError, msgs: this.msgCount, frames: this.frames, compression: this.compression, upSince: this.upSince, clients: this.clients.size, vessels: this.vessels.size, lastRaw: this.lastRaw, lastClose: this.lastClose }), { headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ status: this.status, lastError: this.lastError, msgs: this.msgCount, frames: this.frames, compression: this.compression, upSince: this.upSince, clients: this.clients.size, vessels: this.vessels.size, known: this.registry.size, warmFor: Math.max(0, Math.round((this.warmUntil - Date.now()) / 1000)), lastRaw: this.lastRaw, lastClose: this.lastClose }), { headers: { 'content-type': 'application/json' } });
     }
     if (url.pathname.endsWith('/snapshot')) {
       // Latest stored snapshot, for devices when the live relay is down (14.3).
@@ -171,6 +200,10 @@ export class AisHub extends DurableObject<Env> {
       this.changed.set(v.mmsi, now);
       if (r.MessageType === 'ShipStaticData') this.staticAt.set(v.mmsi, now);
     }
+    if (v && r.MessageType === 'ShipStaticData' && v.type != null) {
+      const c = category(v);
+      if (c === 'tanker' || c === 'lng_lpg') this.registry.set(v.mmsi, [v.type, (v.name ?? '').slice(0, 30)]);
+    }
     if (v && Number.isFinite(v.lat)) {
       const cat = category(v);
       if (cat === 'tanker' || cat === 'lng_lpg') {
@@ -208,6 +241,12 @@ export class AisHub extends DurableObject<Env> {
   private async tick() {
     const now = Date.now();
     if (!this.clients.size) {
+      if (now < this.warmUntil) {
+        // App open but no map on screen: keep collecting, nothing to send.
+        if (!this.upstream && this.status !== 'connecting' && this.status !== 'no-key') void this.ensureUpstream();
+        if (now - this.lastSnapshot > SNAPSHOT_MS) await this.saveSnapshot(now);
+        return;
+      }
       this.idleSince ||= now;
       if (now - this.idleSince > IDLE_CLOSE_MS) {
         this.upstream?.close(1000, 'idle');
@@ -267,6 +306,12 @@ export class AisHub extends DurableObject<Env> {
   private async saveSnapshot(now: number) {
     if (this.status !== 'live' && this.vessels.size === 0) return;
     this.lastSnapshot = now;
+    if (this.registry.size && now - this.registrySavedAt > SNAPSHOT_MS) {
+      // Keep the most recent 40,000 (well under the 2 MB storage value limit).
+      const rows = [...this.registry].slice(-40_000).map(([m, [t, n]]) => [m, t, n]);
+      await this.ctx.storage.put('registry', JSON.stringify(rows));
+      this.registrySavedAt = now;
+    }
     const tankers = [...this.vessels.values()].filter((v) => Number.isFinite(v.lat) && (category(v) === 'tanker' || category(v) === 'lng_lpg')).slice(0, 15_000);
     await this.ctx.storage.put(
       'snapshot',

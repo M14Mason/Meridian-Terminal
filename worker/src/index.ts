@@ -19,8 +19,8 @@ import { hmacHex, timingSafeEqual } from './crypto';
 
 const MAX_BODY = 16 * 1024;
 // Relay instance name. Bump it to start a fresh relay on the new code at once (a running instance keeps its
-// old code while devices stay connected). v2: AISStream frames arrive as Blobs. v3: permessage-deflate compression (2026-10-19).
-const AIS_INSTANCE = 'global-v3';
+// old code while devices stay connected). v2: AISStream frames arrive as Blobs. v3: permessage-deflate compression. v4: warm mode and saved ship registry (2026-10-19).
+const AIS_INSTANCE = 'global-v4';
 // Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
 const SYNC_MAX_BODY = 1024 * 1024;
 
@@ -292,6 +292,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     if (!key) return json({ error: 'not configured' }, 503);
     const exp = Date.now() + 60_000;
     return json({ ticket: `${deviceId}.${exp}.${await hmacHex(key, `ais:${deviceId}:${exp}`)}` });
+  }
+  // The app pings this every few minutes while open, so ships are already loaded when the map opens.
+  if (path === '/api/ais/warm' && method === 'POST') {
+    const r = await env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch(new Request('https://ais/warm'));
+    return new Response(r.body, { headers: { 'content-type': 'application/json', ...SECURITY_HEADERS } });
   }
   if (path === '/api/ais/snapshot' && method === 'GET') {
     const r = await env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch('https://ais/snapshot');

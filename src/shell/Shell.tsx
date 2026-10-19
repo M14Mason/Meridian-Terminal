@@ -3,6 +3,7 @@ import { detectLowPower, setLowPower } from '../lib/motion';
 import { applyTheme, useSettings } from '../state/settings';
 import { startSync } from '../state/sync';
 import { tickers } from '../data/adapters/sec';
+import { api } from '../lib/api';
 import { setTickerIndex } from './command';
 import { DesktopShell } from './DesktopShell';
 import { MobileShell } from './MobileShell';
@@ -40,6 +41,14 @@ export function Shell() {
   const [autoLow, setAutoLow] = useState(false);
 
   useEffect(() => startSync(), []);
+  // Keep the ship relay collecting while the app is open anywhere, so TNKR is already full when opened.
+  // One tiny request every 5 minutes; the relay stays connected 12 minutes past the last one.
+  useEffect(() => {
+    const warm = () => void api('/api/ais/warm', { method: 'POST' }).catch(() => undefined);
+    warm();
+    const id = setInterval(warm, 5 * 60_000);
+    return () => clearInterval(id);
+  }, []);
   // Ticker autocomplete. Loaded in the background, cached for a day.
   useEffect(() => {
     void tickers().then(setTickerIndex, () => undefined);
