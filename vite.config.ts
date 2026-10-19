@@ -5,11 +5,14 @@ import react from '@vitejs/plugin-react';
 // GitHub Pages serves the site at /<repo>/.
 const base = process.env.VITE_BASE_PATH ?? '/Meridian-Terminal/';
 
+/** CSP connect-src entries for the proxy: HTTPS calls plus the WebSocket for the AIS feed. */
 function proxyOrigin(): string {
   const url = process.env.VITE_PROXY_URL;
   if (!url) return '';
   try {
-    return new URL(url).origin;
+    const u = new URL(url);
+    const ws = `${u.protocol === 'https:' ? 'wss:' : 'ws:'}//${u.host}`;
+    return `${u.origin} ${ws}`;
   } catch {
     throw new Error('VITE_PROXY_URL is not a valid URL');
   }

@@ -47,10 +47,15 @@ Views: holdings with weights, new and exited positions, biggest adds and trims, 
 
 Limits stated in the UI: 13F covers long US equity and some options only; no shorts, no cash, no non-US; data is up to 45 days after quarter end.
 
-## Meridian model portfolio (MODEL)
+## Claude Model Portfolio (CMP), owner clarified 2026-10-19
 
-A transparent, rules-based strategy index created by Claude, not a personal recommendation:
+The owner wants a portfolio that Claude itself picks and manages, like an AI fund manager. Build in M8:
 
-* Published rules: universe, factors, weights, rebalance schedule, risk limits. Rules are versioned (strategy version history, item 131).
-* Backtest with costs and slippage, then live tracking from its start date, compared with SPY and a 60/40 ETF mix.
-* Shown with "Model estimate. Not financial advice." It does not know the owner's finances and never says buy or sell.
+* Claude (claude-sonnet-5-5 via the proxy, Opus only if the owner asks) selects 15 to 30 US stocks or ETFs and weights from a code-computed candidate table (valuation from XBRL, momentum, quality, volatility, macro regime). Claude must cite only numbers present in the input table (16.3); schema-validated output.
+* Every position has a short written thesis and the inputs it used. Monthly rebalance (scheduled job), each change logged with reasoning and a prompt version. Strategy version history (item 131).
+* Hypothetical tracking from its start date vs SPY and a 60/40 ETF mix, shown on the AI scoreboard (16.5) with drawdown, hit rate and sample-size warnings.
+* Labeled "Hypothetical model portfolio. Model estimate. Not financial advice." No orders, not tailored to the owner's finances, never says the owner should buy or sell. Cost per rebalance shown before running (2.10).
+
+## Rules-based Meridian index (MODEL)
+
+Also keep a transparent rules-only factor index (no AI) as a baseline for CMP, so Claude's picks can be compared with a simple systematic strategy.

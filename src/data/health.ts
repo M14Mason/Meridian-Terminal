@@ -30,7 +30,8 @@ const PLANNED: [string, string, string][] = [
   ['frankfurter', 'ECB rates (Frankfurter)', 'M5'],
   ['worldbank', 'World Bank', 'M5'],
   ['gdelt', 'GDELT', 'M4'],
-  ['aisstream', 'AISStream', 'M6'],
+  ['aisstream', 'AISStream (via relay)', 'M6'],
+  ['portwatch', 'IMF PortWatch', 'M6'],
   ['anthropic', 'Claude API', 'M8'],
   ['robinhood', 'Robinhood MCP', 'M10'],
 ];
