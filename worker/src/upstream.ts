@@ -14,12 +14,16 @@ export interface Provider {
   authorize(url: URL, headers: Headers, key: KeyResolver): Promise<boolean>;
   /** Edge cache TTL in seconds, matched to how fast the data actually changes (5.5). */
   ttl(url: URL): number;
+  /** Read-only POST searches some public APIs require. Body must pass `validate`. */
+  post?: { paths: RegExp[]; validate: (body: unknown) => boolean };
 }
 
 type Auth =
   | { kind: 'none' }
   | { kind: 'header'; header: string; key: string; optional?: boolean }
-  | { kind: 'query'; param: string; key: string; extra?: Record<string, string> };
+  | { kind: 'query'; param: string; key: string; extra?: Record<string, string> }
+  /** The key goes in a path segment; the client sends the literal segment KEY. */
+  | { kind: 'path'; key: string };
 
 interface Spec {
   id: string;
@@ -30,13 +34,19 @@ interface Spec {
   ttl: [RegExp, number][];
   /** Extra static headers, for example a required User-Agent. */
   headers?: (key: KeyResolver) => Promise<Record<string, string> | null>;
+  post?: Provider['post'];
 }
 
 function make(spec: Spec): Provider {
   return {
     id: spec.id,
     host: spec.host,
+    post: spec.post,
     allow(method, url) {
+      if (method === 'POST') {
+        if (!spec.post || url.protocol !== 'https:' || url.hostname !== spec.host || url.port !== '' || url.username || url.password || url.search) return false;
+        return spec.post.paths.some((re) => re.test(url.pathname));
+      }
       if (method !== 'GET') return false;
       if (url.protocol !== 'https:' || url.hostname !== spec.host || url.port !== '' || url.username || url.password) return false;
       // Clients never choose auth params; the proxy adds them.
@@ -54,7 +64,10 @@ function make(spec: Spec): Provider {
       const k = await key(a.key);
       if (!k) return a.kind === 'header' && Boolean(a.optional);
       if (a.kind === 'header') headers.set(a.header, k);
-      else {
+      else if (a.kind === 'path') {
+        if (!/^[A-Za-z0-9_-]{8,128}$/.test(k)) return false;
+        url.pathname = url.pathname.replace('/KEY/', `/${k}/`);
+      } else {
         url.searchParams.set(a.param, k);
         for (const [p, v] of Object.entries(a.extra ?? {})) url.searchParams.set(p, v);
       }
@@ -175,6 +188,64 @@ const SPECS: Spec[] = [
     ttl: [[/./, 900]],
   },
   {
+    id: 'finra',
+    host: 'api.finra.org',
+    paths: [],
+    auth: { kind: 'none' },
+    ttl: [[/./, 6 * 3600]],
+    post: {
+      // Public FINRA datasets need no login. Only these three, and only filter-style bodies.
+      paths: [/^\/data\/group\/otcMarket\/name\/(consolidatedShortInterest|weeklySummary|regShoDaily)$/],
+      validate: (b) => {
+        if (!b || typeof b !== 'object' || Array.isArray(b)) return false;
+        const allowed = new Set(['limit', 'offset', 'compareFilters', 'dateRangeFilters', 'fields']);
+        return Object.keys(b).every((k) => allowed.has(k)) && JSON.stringify(b).length < 4000;
+      },
+    },
+  },
+  {
+    id: 'kalshi',
+    host: 'api.elections.kalshi.com',
+    paths: [/^\/trade-api\/v2\/(events|markets|series)(\/[A-Z0-9-]{1,80})?$/],
+    auth: { kind: 'none' },
+    ttl: [[/./, 300]],
+  },
+  {
+    id: 'usdm',
+    host: 'usdmdataservices.unl.edu',
+    paths: [/^\/api\/(USStatistics|StateStatistics)\/GetDroughtSeverityStatisticsByAreaPercent$/],
+    auth: { kind: 'none' },
+    ttl: [[/./, DAY]],
+  },
+  {
+    id: 'fed',
+    host: 'www.federalreserve.gov',
+    paths: [/^\/monetarypolicy\/fomccalendars\.htm$/, /^\/newsevents\/pressreleases\/monetary\d{8}a\.htm$/],
+    auth: { kind: 'none' },
+    ttl: [[/calendars/, 6 * 3600], [/./, 30 * DAY]],
+  },
+  {
+    id: 'wikipedia',
+    host: 'en.wikipedia.org',
+    paths: [/^\/w\/api\.php$/],
+    auth: { kind: 'none' },
+    ttl: [[/./, DAY]],
+  },
+  {
+    id: 'nass',
+    host: 'quickstats.nass.usda.gov',
+    paths: [/^\/api\/api_GET\/$/],
+    auth: { kind: 'query', param: 'key', key: 'USDA_NASS_API_KEY' },
+    ttl: [[/./, 6 * 3600]],
+  },
+  {
+    id: 'firms',
+    host: 'firms.modaps.eosdis.nasa.gov',
+    paths: [/^\/api\/(area|country)\/csv\/KEY\/(VIIRS_SNPP_NRT|VIIRS_NOAA20_NRT|MODIS_NRT)\/[\w.,-]{1,60}\/[1-5]$/],
+    auth: { kind: 'path', key: 'NASA_FIRMS_KEY' },
+    ttl: [[/./, 1800]],
+  },
+  {
     // IMF PortWatch daily chokepoint transits (ArcGIS open data). Free, no key.
     id: 'portwatch',
     host: 'services9.arcgis.com',
@@ -271,11 +342,22 @@ export async function fetchUpstream(
   url: URL,
   key: KeyResolver,
   ctx: { waitUntil(p: Promise<unknown>): void },
+  body?: string,
 ): Promise<{ res: Cached; cache: 'HIT' | 'MISS' | 'COALESCED' } | { error: string; status: number }> {
-  if (!provider.allow('GET', url)) return { error: 'blocked by allowlist', status: 403 };
-
-  // The cache key is built before auth is added, so keys never end up in cache keys.
-  const cacheKey = new Request(`https://cache.meridian.invalid/${provider.id}${url.pathname}${url.search}`);
+  const method = body === undefined ? 'GET' : 'POST';
+  if (!provider.allow(method, url)) return { error: 'blocked by allowlist', status: 403 };
+  if (body !== undefined) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      return { error: 'bad body', status: 400 };
+    }
+    if (!provider.post?.validate(parsed)) return { error: 'blocked by allowlist', status: 403 };
+  }
+  // POST searches are cached by a hash of the body. Built before auth, so keys never end up in cache keys.
+  const bodyTag = body === undefined ? '' : `/__post/${[...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body)))].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+  const cacheKey = new Request(`https://cache.meridian.invalid/${provider.id}${url.pathname}${url.search}${bodyTag}`);
   const cache = (caches as unknown as { default: Cache }).default;
   const hit = await cache.match(cacheKey);
   if (hit) {
@@ -300,7 +382,8 @@ export async function fetchUpstream(
     if (!(await provider.authorize(target, headers, key))) {
       return { status: 424, body: new TextEncoder().encode('{"error":"provider key not set"}').buffer as ArrayBuffer, contentType: 'application/json', fetchedAt: Date.now() };
     }
-    const r = await fetch(target.toString(), { method: 'GET', headers, redirect: 'manual' });
+    if (body !== undefined) headers.set('content-type', 'application/json');
+    const r = await fetch(target.toString(), { method, headers, body, redirect: 'manual' });
     const out: Cached = {
       status: r.status >= 300 && r.status < 400 ? 502 : r.status,
       body: await r.arrayBuffer(),

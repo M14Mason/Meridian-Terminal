@@ -41,11 +41,24 @@ describe('provider allowlists', () => {
     expect(ok('eia', '/v2/petroleum/pri/spt/data/', '?api_key=x')).toBe(false);
     expect(ok('massive', '/v2/aggs/ticker/AAPL/prev', '?apiKey=x')).toBe(false);
   });
-  it('is GET only for every provider', () => {
+  it('allows POST only for listed read-only search paths', () => {
     for (const prov of Object.values(PROVIDERS)) {
-      const u = new URL(`https://${prov.host}/`);
-      expect(prov.allow('POST', u), prov.id).toBe(false);
+      expect(prov.allow('POST', new URL(`https://${prov.host}/`)), prov.id).toBe(false);
+      expect(prov.allow('PUT', new URL(`https://${prov.host}/x`)), prov.id).toBe(false);
     }
+    expect(p('finra').allow('POST', new URL('https://api.finra.org/data/group/otcMarket/name/weeklySummary'))).toBe(true);
+    expect(p('finra').allow('POST', new URL('https://api.finra.org/data/group/otcMarket/name/weeklySummary?x=1'))).toBe(false);
+    expect(p('finra').post!.validate({ limit: 5, compareFilters: [] })).toBe(true);
+    expect(p('finra').post!.validate({ limit: 5, evil: 1 })).toBe(false);
+    expect(p('alpaca').allow('POST', new URL('https://data.alpaca.markets/v2/stocks/bars'))).toBe(false);
+  });
+  it('puts path keys in the right segment only', async () => {
+    const u = buildUpstreamUrl(p('firms'), '/api/area/csv/KEY/VIIRS_SNPP_NRT/world/1', '')!;
+    expect(p('firms').allow('GET', u)).toBe(true);
+    const target = new URL(u.toString());
+    expect(await p('firms').authorize(target, new Headers(), async () => 'abcdef1234567890')).toBe(true);
+    expect(target.pathname).toBe('/api/area/csv/abcdef1234567890/VIIRS_SNPP_NRT/world/1');
+    expect(await p('firms').authorize(new URL(u.toString()), new Headers(), async () => 'bad/key')).toBe(false);
   });
   it('injects query keys on a copy so the caller URL stays clean', async () => {
     const u = buildUpstreamUrl(p('fred'), '/fred/series/observations', '?series_id=DGS10')!;

@@ -198,11 +198,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
 
   // Upstream gateway: /api/up/<provider>/<path>
   const up = path.match(/^\/api\/up\/([a-z0-9-]+)(\/.*)$/);
-  if (up && method === 'GET') {
+  if (up && (method === 'GET' || method === 'POST')) {
     const provider = PROVIDERS[up[1]!];
     if (!provider) return json({ error: 'unknown provider' }, 404);
     const target = buildUpstreamUrl(provider, up[2]!, url.search);
-    if (!target || !provider.allow('GET', target)) {
+    if (!target || !provider.allow(method, target)) {
       ctx.waitUntil(vault.logBlocked('upstream', `${provider.id} ${up[2]!.slice(0, 80)}`));
       log('upstream.blocked', { provider: provider.id });
       return json({ error: 'blocked by allowlist' }, 403);
@@ -212,7 +212,12 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
       return r.ok ? r.data : null;
     };
     const t0 = Date.now();
-    const out = await fetchUpstream(provider, target, resolve, ctx);
+    let postBody: string | undefined;
+    if (method === 'POST') {
+      postBody = await req.text();
+      if (postBody.length > 8000) return json({ error: 'too large' }, 413);
+    }
+    const out = await fetchUpstream(provider, target, resolve, ctx, postBody);
     if ('error' in out) return json({ error: out.error }, out.status);
     log('upstream', { provider: provider.id, status: out.res.status, cache: out.cache, ms: Date.now() - t0 });
     if (out.res.status !== 200) {

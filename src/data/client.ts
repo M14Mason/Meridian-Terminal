@@ -96,6 +96,29 @@ export async function up<T>(provider: string, path: string, params?: Params, opt
   );
 }
 
+/** Read-only POST search through the gateway (FINRA, USAspending). Cached by body. */
+export async function upPost<T>(provider: string, path: string, body: unknown, opts: UpOptions = {}): Promise<Fetched<T>> {
+  const full = `/api/up/${provider}${path}`;
+  const key = `upp:${full}:${JSON.stringify(body)}`;
+  if (opts.maxAgeMs) {
+    const c = await cached<T>(key);
+    if (c && Date.now() - c.fetchedAt < opts.maxAgeMs) return c;
+  }
+  return scheduler.request(provider, async () => {
+    const t0 = performance.now();
+    try {
+      const data = await api<T>(full, { method: 'POST', body });
+      const out: Fetched<T> = { data, fetchedAt: Date.now(), fromCache: false };
+      void idb.set('cache', key, { data, fetchedAt: out.fetchedAt }).catch(() => undefined);
+      report(provider, { ok: true, latencyMs: Math.round(performance.now() - t0) });
+      return out;
+    } catch (e) {
+      report(provider, { ok: false, error: e instanceof ApiError ? e.message : 'network error' });
+      throw e;
+    }
+  }, opts.priority ?? PRIORITY.visible);
+}
+
 /** Thrown message when the owner has not saved a provider key yet. */
 export function isMissingKey(e: unknown): boolean {
   return e instanceof ApiError && e.status === 424;

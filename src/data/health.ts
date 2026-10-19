@@ -32,6 +32,9 @@ const PLANNED: [string, string, string][] = [
   ['gdelt', 'GDELT', 'M4'],
   ['aisstream', 'AISStream (via relay)', 'M6'],
   ['portwatch', 'IMF PortWatch', 'M6'],
+  ['treasury', 'US Treasury (direct)', 'M7'],
+  ['usaspending', 'USAspending (direct)', 'M7'],
+  ['finra', 'FINRA (public data)', 'M7'],
   ['anthropic', 'Claude API', 'M8'],
   ['robinhood', 'Robinhood MCP', 'M10'],
 ];

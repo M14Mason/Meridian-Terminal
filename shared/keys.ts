@@ -19,7 +19,11 @@ export const KEY_SPECS: readonly KeySpec[] = [
   { name: 'COINGECKO_API_KEY', label: 'CoinGecko (optional)', help: 'Demo key, optional.' },
   { name: 'MARKETAUX_API_KEY', label: 'Marketaux (optional)', help: 'Backup news.' },
   { name: 'USDA_NASS_API_KEY', label: 'USDA NASS (optional)', help: 'Crop reports.' },
-  { name: 'PATENTSVIEW_API_KEY', label: 'PatentsView (optional)', help: 'Patent tracker.' },
+  { name: 'NASA_FIRMS_KEY', label: 'NASA FIRMS map key (optional)', help: 'Wildfire map (FIRE).' },
+  { name: 'COPERNICUS_CLIENT_ID', label: 'Copernicus client ID (optional)', help: 'Sentinel Hub OAuth client, for satellite images (SAT).' },
+  { name: 'COPERNICUS_CLIENT_SECRET', label: 'Copernicus client secret (optional)', help: 'Pairs with the client ID above.' },
+  { name: 'API_NINJAS_KEY', label: 'API Ninjas (optional)', help: 'Earnings call transcripts.' },
+  { name: 'RESEND_API_KEY', label: 'Resend (optional)', help: 'Only if Cloudflare email cannot send alerts.' },
 ];
 
 export const KEY_NAMES: ReadonlySet<string> = new Set(KEY_SPECS.map((k) => k.name));

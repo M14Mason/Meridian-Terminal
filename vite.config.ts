@@ -12,7 +12,8 @@ function proxyOrigin(): string {
   try {
     const u = new URL(url);
     const ws = `${u.protocol === 'https:' ? 'wss:' : 'ws:'}//${u.host}`;
-    return `${u.origin} ${ws}`;
+    // Plus two keyless government APIs that block Cloudflare but allow CORS (src/data/adapters/direct.ts).
+    return `${u.origin} ${ws} https://api.usaspending.gov https://api.fiscaldata.treasury.gov`;
   } catch {
     throw new Error('VITE_PROXY_URL is not a valid URL');
   }
