@@ -1,0 +1,31 @@
+name: Data jobs
+# Daily jobs that collect public data too slow for the browser and store it privately in the
+# proxy cache (never in this public repo). Secrets are never printed.
+on:
+  schedule:
+    - cron: '30 10 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      max_days:
+        description: 'SEC days to backfill per run (insiders)'
+        default: '4'
+
+permissions:
+  contents: read
+
+jobs:
+  insiders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Insider purchases (Form 4)
+        run: node scripts/jobs/insiders.mjs
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
+          PROXY_URL: ${{ vars.PROXY_URL }}
+          MAX_DAYS: ${{ inputs.max_days || '2' }}

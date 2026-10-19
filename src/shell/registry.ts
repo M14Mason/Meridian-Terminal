@@ -90,7 +90,7 @@ export const FUNCTIONS: FunctionDef[] = [
 
   // ----- M7 additions: hedge fund toolkit, investors, quant, signals (docs/ADDITIONS.md) -----
   F('GURU', 'Superinvestors (13F)', 'Famous investors\' 13F portfolios: holdings, adds, trims, consensus, overlap.', { aliases: ['13F', 'GURUS'], milestone: 'M7', category: 'Investors', size: { w: 30, h: 36 }, load: () => import('../panels/GuruPanel') }),
-  F('CLUS', 'Insider cluster buys', '3+ insiders buying on the open market within 10 days (Form 4).', { milestone: 'M7', category: 'Investors' }),
+  F('CLUS', 'Insider cluster buys', '3+ insiders buying on the open market within 10 days (Form 4).', { milestone: 'M7', category: 'Investors', size: { w: 30, h: 30 }, load: () => import('../panels/ClusterPanel') }),
   F('PEAD', 'Post-earnings drift', 'Average moves 1, 5 and 20 days after past earnings beats and misses.', { needsSecurity: true, milestone: 'M7', category: 'Hedge Fund' }),
   F('SQZ', 'Short squeeze radar', 'Short interest, borrow fee and relative volume ranked together.', { milestone: 'M7', category: 'Hedge Fund' }),
   F('MARB', 'Merger arbitrage', 'Pending deals from 8-K and merger proxies with spread to your entered offer price.', { milestone: 'M7', category: 'Hedge Fund' }),

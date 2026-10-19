@@ -67,6 +67,14 @@ async function ipKey(req: Request): Promise<string> {
   return [...new Uint8Array(d).slice(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Constant-time admin token check (HMAC both sides so length differences do not leak). */
+async function isAdmin(req: Request, env: Env): Promise<boolean> {
+  const admin = typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
+  const given = req.headers.get('authorization')?.startsWith('Bearer ') ? req.headers.get('authorization')!.slice(7).trim() : '';
+  if (!admin || !given) return false;
+  return timingSafeEqual(await hmacHex(admin, given), await hmacHex(admin, admin));
+}
+
 function bearer(req: Request): string | null {
   const h = req.headers.get('authorization') ?? '';
   return h.startsWith('Bearer ') ? h.slice(7).trim() : null;
@@ -110,20 +118,19 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ws', req));
   }
   if (path === '/api/ais/ingest' && method === 'POST') {
-    const admin = typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
-    const given = bearer(req) ?? '';
-    if (!admin || !timingSafeEqual(await hmacHex(admin, given), await hmacHex(admin, admin))) return json({ error: 'unauthorized' }, 401);
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
     return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ingest', { method: 'POST', body: await req.text() }));
   }
 
-  // Job data cache: GitHub Actions write with the admin token.
-  const cachePut = path.match(/^\/api\/cache\/([a-z0-9-]{1,40})$/);
-  if (cachePut && method === 'PUT') {
-    const admin = typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
-    if (!admin || !timingSafeEqual(await hmacHex(admin, bearer(req) ?? ''), await hmacHex(admin, admin))) return json({ error: 'unauthorized' }, 401);
-    const body = await req.text();
-    return fromResult(await vault.putBlob(cachePut[1]!, body), () => ({ ok: true }));
+  // Job data cache: GitHub Actions write (and read back their own state) with the admin token.
+  const cacheAdmin = path.match(/^\/api\/cache\/([a-z0-9-]{1,40})$/);
+  if (cacheAdmin && (method === 'PUT' || method === 'GET') && (await isAdmin(req, env))) {
+    if (method === 'PUT') return fromResult(await vault.putBlob(cacheAdmin[1]!, await req.text()), () => ({ ok: true }));
+    const r = await vault.getBlob(cacheAdmin[1]!);
+    if (!r.ok) return json({ error: r.error }, r.status);
+    return r.data ? new Response(r.data.body, { headers: { 'content-type': 'application/json', ...SECURITY_HEADERS } }) : json({ error: 'no data yet' }, 404);
   }
+  if (cacheAdmin && method === 'PUT') return json({ error: 'unauthorized' }, 401);
 
   // ----- Everything below needs a valid device token -----
   const auth = await vault.authorize(bearer(req));

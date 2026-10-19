@@ -13,7 +13,7 @@ export function DataStatus<T>({ state, empty, keyName }: { state: DataState<T>; 
   if (state.error && state.data === undefined) {
     return (
       <div className="state">
-        <div className="down">Could not load: {state.error}</div>
+        <div className={state.error.startsWith('No data yet') ? 'muted' : 'down'}>{state.error.startsWith('No data yet') ? state.error : `Could not load: ${state.error}`}</div>
         <button onClick={state.refresh}>RETRY</button>
       </div>
     );
