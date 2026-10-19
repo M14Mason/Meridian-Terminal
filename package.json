@@ -17,7 +17,10 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run scan:secrets",
     "worker:dev": "wrangler dev -c worker/wrangler.toml",
     "worker:deploy": "wrangler deploy -c worker/wrangler.toml",
-    "hooks:install": "git config core.hooksPath .githooks"
+    "hooks:install": "git config core.hooksPath .githooks",
+    "supply:universe": "node scripts/supply/universe.mjs",
+    "supply:prep": "esbuild scripts/supply/prep.mjs --bundle --platform=node --format=esm --outfile=.cache/supply-prep.mjs --log-level=warning && node .cache/supply-prep.mjs",
+    "supply:save": "esbuild scripts/supply/save.mjs --bundle --platform=node --format=esm --outfile=.cache/supply-save.mjs --log-level=warning && node .cache/supply-save.mjs"
   },
   "dependencies": {
     "gsap": "3.15.0",
