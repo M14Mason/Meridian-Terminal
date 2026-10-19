@@ -18,7 +18,7 @@ M6 Tanker map (in progress)
 
 * M3, M4, M5 DONE (see git log). Proxy deployed with M3 providers; redeploy needed for PortWatch and AIS (`npm run worker:deploy`).
 * **M6 next steps:** (1) deploy Worker (adds AisHub DO, migration v2); (2) generate ADMIN_TOKEN and set it with `wrangler secret put ADMIN_TOKEN` and `gh secret set MERIDIAN_ADMIN_TOKEN` without printing it; (3) build `src/data/adapters/ais.ts` (ticket, WebSocket with reconnect, snapshot fallback) and `src/panels/TankerPanel.tsx` (MapLibre, Natural Earth land from world-atlas land-110m, no tiles; views tankers / chokepoints / all ships with bbox; vessel drawer; dark-ship list; zone counters plus PortWatch daily transits; WTI/Brent from FRED; honest limits text 14.7); (4) optional `.github/workflows/ais-snapshot.yml` gated by repo variable AIS_SNAPSHOT_ENABLED; (5) register TNKR.
-* Then M7 to M12 per docs/BUILD_PROMPT.md.
+* Then M7 to M12 per docs/BUILD_PROMPT.md PLUS docs/ADDITIONS.md (owner additions 2026-10-19: launchpad, presets, ideas 1 to 9, hedge fund toolkit, superinvestor 13F tracker, model portfolio). Owner has saved all keys.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
