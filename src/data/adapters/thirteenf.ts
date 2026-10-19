@@ -34,3 +34,13 @@ export async function fundQuarters(cik: number) {
   const [curH, prevH] = await Promise.all([holdings(cik, cur.accession), prev ? holdings(cik, prev.accession) : Promise.resolve(null)]);
   return { name: f.data.name, cur, prev: prev ?? null, curH, prevH, fetchedAt: f.fetchedAt };
 }
+
+/** Latest 13F of every tracked fund (cached). Used by GURU consensus and OWN. */
+export async function allFundsLatest(funds: { cik: number }[]) {
+  const out: Record<number, { holdings: import('../../../shared/thirteenf').Holding[]; quarter: string; filed: string }> = {};
+  const res = await Promise.allSettled(funds.map((f) => fundQuarters(f.cik)));
+  res.forEach((r, i) => {
+    if (r.status === 'fulfilled' && r.value.cur && (Date.now() - Date.parse(r.value.cur.filed)) / 86_400_000 < 200) out[funds[i]!.cik] = { holdings: r.value.curH, quarter: r.value.cur.reportDate, filed: r.value.cur.filed };
+  });
+  return out;
+}

@@ -39,7 +39,7 @@ interface Submissions {
   website: string;
   phone: string;
   addresses: { business: { street1: string; city: string; stateOrCountry: string; zipCode: string } };
-  filings: { recent: { accessionNumber: string[]; form: string[]; filingDate: string[]; reportDate: string[]; primaryDocument: string[]; primaryDocDescription: string[] } };
+  filings: { recent: { accessionNumber: string[]; form: string[]; filingDate: string[]; reportDate: string[]; primaryDocument: string[]; primaryDocDescription: string[]; items?: string[] } };
 }
 
 export function filingUrl(cik: number, accession: string, doc: string): string {
@@ -59,6 +59,8 @@ export async function profile(ticker: string): Promise<Fetched<CompanyProfile>> 
     reportDate: rec.reportDate[i] ?? '',
     description: rec.primaryDocDescription[i] ?? '',
     url: filingUrl(info.cik, a, rec.primaryDocument[i] ?? ''),
+    items: rec.items?.[i] ?? '',
+    primaryDoc: rec.primaryDocument[i] ?? '',
   }));
   const b = s.addresses?.business;
   return {

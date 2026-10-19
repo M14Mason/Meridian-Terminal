@@ -44,6 +44,9 @@ export interface Filing {
   reportDate: string;
   description: string;
   url: string;
+  /** 8-K item numbers, for example "2.02,9.01" (empty for other forms). */
+  items: string;
+  primaryDoc: string;
 }
 
 export interface CompanyProfile {
