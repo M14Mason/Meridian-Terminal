@@ -169,3 +169,9 @@
 @media (prefers-reduced-motion: reduce) { .tape__track { animation: none; } .tape__dup { display: none; } .tape { overflow-x: auto; } }
 :root[data-lowpower='1'] .tape__track { animation: none; }
 :root[data-lowpower='1'] .tape__dup { display: none; }
+.banner--info { background: transparent; color: var(--text-dim); border-bottom: 1px solid var(--hairline); padding: 2px 0 4px; }
+.news td { vertical-align: top; white-space: normal; }
+.news__head a { color: var(--text); text-decoration: none; }
+.news__head a:hover { color: var(--link); text-decoration: underline; }
+.stmt td:first-child { white-space: nowrap; }
+.flag { color: var(--down); font-weight: 600; }

@@ -45,16 +45,16 @@ export const FUNCTIONS: FunctionDef[] = [
   F('MCHT', 'Multi-chart', 'Chart grid with synced crosshair.', { milestone: 'M3', category: 'Charts', size: { w: 36, h: 30 }, load: () => import('../panels/MultiChartPanel') }),
 
   // ----- M4 News and filings -----
-  F('N', 'Top news', 'Market-wide headlines with latency badges.', { aliases: ['NEWS', 'TOP'], milestone: 'M4', category: 'News', mobileTab: 'news' }),
-  F('CN', 'Company news', 'Headlines for one security with sentiment.', { needsSecurity: true, milestone: 'M4', category: 'News' }),
-  F('CF', 'Filings', 'SEC filings: 10-K, 10-Q, 8-K, Form 4, 13F and more.', { needsSecurity: true, milestone: 'M4', category: 'Filings' }),
-  F('FA', 'Financials', 'Statements from SEC XBRL company facts.', { needsSecurity: true, milestone: 'M4', category: 'Filings' }),
-  F('INS', 'Insider trades', 'Form 4 transactions.', { needsSecurity: true, milestone: 'M4', category: 'Filings' }),
-  F('HDS', 'Holders', '13F institutional holders.', { needsSecurity: true, milestone: 'M4', category: 'Filings' }),
-  F('ECO', 'Economic calendar', 'Upcoming releases with nowcast context.', { aliases: ['WECO'], milestone: 'M4', category: 'Macro' }),
-  F('ERN', 'Earnings calendar', 'Upcoming earnings.', { milestone: 'M4', category: 'Calendars' }),
-  F('BDVD', 'Dividends', 'Dividend calendar and history.', { milestone: 'M4', category: 'Calendars' }),
-  F('IPO', 'IPO calendar', 'Upcoming and recent IPOs.', { milestone: 'M4', category: 'Calendars' }),
+  F('N', 'Top news', 'Market-wide headlines with latency badges.', { aliases: ['NEWS', 'TOP'], milestone: 'M4', category: 'News', mobileTab: 'news', size: { w: 30, h: 34 }, load: () => import('../panels/NewsPanel') }),
+  F('CN', 'Company news', 'Headlines for one security with sentiment.', { needsSecurity: true, milestone: 'M4', category: 'News', size: { w: 30, h: 30 }, load: () => import('../panels/NewsPanel') }),
+  F('CF', 'Filings', 'SEC filings: 10-K, 10-Q, 8-K, Form 4, 13F and more.', { needsSecurity: true, milestone: 'M4', category: 'Filings', size: { w: 28, h: 28 }, load: () => import('../panels/FilingsPanel') }),
+  F('FA', 'Financials', 'Statements from SEC XBRL company facts.', { needsSecurity: true, milestone: 'M4', category: 'Filings', size: { w: 34, h: 26 }, load: () => import('../panels/FinancialsPanel') }),
+  F('INS', 'Insider trades', 'Form 4 transactions.', { needsSecurity: true, milestone: 'M4', category: 'Filings', size: { w: 30, h: 28 }, load: () => import('../panels/InsiderPanel') }),
+  F('HDS', 'Holders (LIMITED)', '5%+ owners from Schedule 13D and 13G filings.', { needsSecurity: true, milestone: 'M4', category: 'Filings', size: { w: 26, h: 22 }, load: () => import('../panels/HoldersPanel') }),
+  F('ECO', 'Economic calendar', 'Upcoming US data releases (FRED release dates).', { aliases: ['WECO'], milestone: 'M4', category: 'Macro', size: { w: 26, h: 28 }, load: () => import('../panels/CalendarPanel') }),
+  F('ERN', 'Earnings calendar', 'Upcoming earnings.', { milestone: 'M4', category: 'Calendars', size: { w: 30, h: 30 }, load: () => import('../panels/CalendarPanel') }),
+  F('BDVD', 'Dividends', 'Upcoming ex-dividend dates, or one ticker\'s history (AAPL BDVD).', { milestone: 'M4', category: 'Calendars', size: { w: 26, h: 28 }, load: () => import('../panels/CalendarPanel') }),
+  F('IPO', 'IPO calendar', 'Upcoming and recent IPOs.', { milestone: 'M4', category: 'Calendars', size: { w: 32, h: 24 }, load: () => import('../panels/CalendarPanel') }),
 
   // ----- M5 Macro and heatmaps -----
   F('HEAT', 'Macro heatmaps', 'US, G7 and global heatmaps with data age on every cell.', { milestone: 'M5', category: 'Macro', mobileTab: 'maps' }),

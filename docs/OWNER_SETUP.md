@@ -62,7 +62,7 @@ Free keys to request (all free tiers):
 | Finnhub | https://finnhub.io/register | |
 | AISStream | https://aisstream.io (sign in with GitHub) | Needed for the tanker map (M6). |
 
-Optional keys (only when the related panel is built): USDA NASS, PatentsView, Copernicus Data Space, FINRA, Reddit (non-commercial app).
+Optional keys (only when the related panel is built): USDA NASS, PatentsView, Copernicus Data Space, FINRA. Reddit is not used (omitted).
 
 ## 5. Decisions Claude needs from you (no secrets)
 
