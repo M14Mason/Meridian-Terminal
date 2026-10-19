@@ -34,14 +34,14 @@ const RANGES: Record<Range, [Timeframe, number, number]> = {
   MAX: ['1Month', 9500, 400],
 };
 
-type Kind = 'candle' | 'ha' | 'line' | 'renko';
-type Overlay = 'sma20' | 'sma50' | 'sma200' | 'ema21' | 'bb' | 'vwap' | 'keltner' | 'donchian' | 'ichimoku' | 'supertrend' | 'pivots' | 'fib' | 'sr' | 'patterns' | 'divergence';
+type Kind = 'candle' | 'ha' | 'line' | 'renko' | 'pnf';
+type Overlay = 'vprofile' | 'sma20' | 'sma50' | 'sma200' | 'ema21' | 'bb' | 'vwap' | 'keltner' | 'donchian' | 'ichimoku' | 'supertrend' | 'pivots' | 'fib' | 'sr' | 'patterns' | 'divergence';
 type Osc = 'none' | 'rsi' | 'macd' | 'stoch';
 
 const OVERLAYS: [Overlay, string][] = [
   ['sma20', 'SMA 20'], ['sma50', 'SMA 50'], ['sma200', 'SMA 200'], ['ema21', 'EMA 21'], ['bb', 'Bollinger'], ['vwap', 'VWAP'],
   ['keltner', 'Keltner'], ['donchian', 'Donchian'], ['ichimoku', 'Ichimoku'], ['supertrend', 'Supertrend'], ['pivots', 'Pivots'],
-  ['fib', 'Auto Fib'], ['sr', 'S/R zones'], ['patterns', 'Candle patterns'], ['divergence', 'RSI divergence'],
+  ['fib', 'Auto Fib'], ['sr', 'S/R zones'], ['patterns', 'Candle patterns'], ['divergence', 'RSI divergence'], ['vprofile', 'Volume profile'],
 ];
 
 interface Point { t: number; p: number }
@@ -51,6 +51,7 @@ export default function ChartPanel({ security, code }: PanelProps) {
   const sym = security ?? 'SPY';
   const [range, setRange] = useState<Range>(code === 'GIP' ? '1D' : '1Y');
   const [kind, setKind] = useState<Kind>('candle');
+  const [profile, setProfile] = useState<{ y: number; h: number; w: number; poc: boolean }[]>([]);
   const [scale, setScale] = useState<PriceScaleMode>(PriceScaleMode.Normal);
   const [overlays, setOverlays] = useState<Set<Overlay>>(new Set(['sma50', 'sma200']));
   const [osc, setOsc] = useState<Osc>('rsi');
@@ -90,7 +91,7 @@ export default function ChartPanel({ security, code }: PanelProps) {
   // Build the whole chart from scratch when inputs change. Simple and leak-free; data sizes are small.
   useEffect(() => {
     const el = box.current;
-    if (!el || data.length === 0) return;
+    if (!el || data.length === 0 || kind === 'pnf') return;
     const c = themeColors();
     const chart = makeChart(el, { rightPriceScale: { mode: scale, borderColor: c.grid } });
     chartRef.current = chart;
@@ -241,7 +242,33 @@ export default function ChartPanel({ security, code }: PanelProps) {
     if (len > n) chart.timeScale().setVisibleLogicalRange({ from: len - n, to: len + 2 });
     else chart.timeScale().fitContent();
 
+    // ----- Volume profile (item 4): volume by price for the visible bars, drawn beside the price axis -----
+    let raf = 0;
+    const drawProfile = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const r = chart.timeScale().getVisibleLogicalRange();
+        if (!r) return;
+        const vis = data.slice(Math.max(0, Math.floor(r.from)), Math.min(data.length, Math.ceil(r.to) + 1));
+        if (vis.length < 2) return;
+        const vp = I.volumeProfile(vis, 28);
+        const max = Math.max(...vp.bins.map((b) => b.volume)) || 1;
+        const rows = vp.bins.map((b, i) => {
+          const y1 = main.priceToCoordinate(b.to);
+          const y2 = main.priceToCoordinate(b.from);
+          return y1 == null || y2 == null ? null : { y: Math.min(y1, y2), h: Math.max(1, Math.abs(y2 - y1) - 1), w: b.volume / max, poc: i === vp.pocIndex };
+        }).filter((x): x is { y: number; h: number; w: number; poc: boolean } => x != null);
+        setProfile(rows);
+      });
+    };
+    if (overlays.has('vprofile') && kind !== 'renko') {
+      chart.timeScale().subscribeVisibleLogicalRangeChange(drawProfile);
+      drawProfile();
+    }
+
     return () => {
+      cancelAnimationFrame(raf);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(drawProfile);
       chart.remove();
       chartRef.current = null;
       mainRef.current = null;
@@ -303,6 +330,7 @@ export default function ChartPanel({ security, code }: PanelProps) {
           <option value="ha">Heikin Ashi</option>
           <option value="line">Line</option>
           <option value="renko">Renko (ATR box)</option>
+          <option value="pnf">Point and figure</option>
         </select>
         <select value={scale} onChange={(e) => setScale(Number(e.target.value) as PriceScaleMode)} aria-label="Price scale">
           <option value={PriceScaleMode.Normal}>Linear</option>
@@ -341,12 +369,51 @@ export default function ChartPanel({ security, code }: PanelProps) {
       )}
       {tool && <div className="accent" style={{ fontSize: 11 }}>{tool === 'hline' ? 'Click a price level.' : pending ? 'Click the second point.' : 'Click the first point.'}</div>}
       <DataStatus state={state} keyName="Alpaca" empty={state.data?.length === 0} />
-      <div ref={box} className="chart-box grow" />
+      {kind === 'pnf' ? <PointFigure bars={data} /> : (
+        <div className="grow" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+          <div ref={box} className="chart-box grow" />
+          {overlays.has('vprofile') && kind !== 'renko' && (
+            <svg className="vprofile" style={{ position: 'absolute', top: 0, right: 64, width: 120, height: '100%', pointerEvents: 'none' }} aria-label="Volume profile for the visible bars">
+              {profile.map((r, i) => <rect key={i} x={120 - r.w * 120} y={r.y} width={r.w * 120} height={r.h} fill={r.poc ? 'var(--accent)' : 'var(--link)'} opacity={r.poc ? 0.55 : 0.28} />)}
+            </svg>
+          )}
+        </div>
+      )}
       <div className="disclaimer">
         IEX single-venue bars: volume and volume-based studies are approximate. Adjusted for splits and dividends.
         {overlays.has('patterns') && ' Patterns: H hammer, SS shooting star, BE bullish engulfing, SE bearish engulfing, MS morning star, ES evening star.'}
         {overlays.has('divergence') && ' DIV+/DIV- = bullish/bearish RSI divergence.'}
+        {overlays.has('vprofile') && ' Volume profile: volume traded at each price over the visible bars; the brightest bar is the point of control.'}
+        {kind === 'pnf' && ' Point and figure: X columns rise, O columns fall; box = ATR(14), 3-box reversal, on closes.'}
       </div>
+    </div>
+  );
+}
+
+/** Point and figure chart (item 3) as an SVG grid: box size from ATR(14), 3-box reversal, on closes. */
+function PointFigure({ bars }: { bars: Bar[] }) {
+  const res = useMemo(() => {
+    if (bars.length < 20) return null;
+    const atr = I.atr(bars, 14).filter(Number.isFinite).at(-1) ?? 1;
+    const box = Number(atr.toPrecision(2));
+    const cols = I.pointAndFigure(bars, box, 3).slice(-60);
+    if (!cols.length) return null;
+    const lo = Math.min(...cols.map((c) => c.from));
+    const hi = Math.max(...cols.map((c) => c.to));
+    return { box, cols, lo, hi };
+  }, [bars]);
+  if (!res) return <p className="muted">Not enough data for point and figure.</p>;
+  const cell = Math.max(8, Math.min(16, Math.floor(420 / (res.hi - res.lo + 1))));
+  const w = res.cols.length * cell + 60;
+  const h = (res.hi - res.lo + 1) * cell + 8;
+  return (
+    <div className="grow" style={{ overflow: 'auto' }}>
+      <svg width={w} height={h} role="img" aria-label="Point and figure chart">
+        {Array.from({ length: res.hi - res.lo + 1 }, (_, k) => res.hi - k).filter((b) => b % 5 === 0).map((b) => <text key={b} x={w - 56} y={(res.hi - b) * cell + cell * 0.8 + 4} fill="var(--text-dim)" fontSize={9}>{(b * res.box).toFixed(2)}</text>)}
+        {res.cols.map((c, i) => Array.from({ length: c.to - c.from + 1 }, (_, k) => c.from + k).map((b) => (
+          <text key={`${i}-${b}`} x={i * cell + cell / 2} y={(res.hi - b) * cell + cell * 0.8 + 4} fill={c.kind === 'X' ? 'var(--up)' : 'var(--down)'} fontSize={cell - 2} textAnchor="middle">{c.kind}</text>
+        )))}
+      </svg>
     </div>
   );
 }
