@@ -15,7 +15,8 @@ import {
 import * as I from '../../shared/indicators';
 import type { Bar } from '../../shared/market';
 import { line, makeChart, PALETTE, themeColors, ts } from '../charts/lw';
-import { ALPACA_NOTE, bars as loadBars, startFor, type Timeframe } from '../data/adapters/alpaca';
+import { chartBars, nyDate, prevClose, startFor, type Timeframe } from '../data/adapters/alpaca';
+import { dir } from '../lib/format';
 import { useData } from '../data/useData';
 import { sync, useRecord } from '../state/sync';
 import { DataStatus } from '../shell/DataStatus';
@@ -65,13 +66,30 @@ export default function ChartPanel({ security, code }: PanelProps) {
   const [tools, setTools] = useState(() => window.innerWidth >= 768);
   const [pending, setPending] = useState<Point | null>(null);
 
-  const [tf, days, show] = RANGES[range];
-  const state = useData(`gp:${sym}:${range}`, () => loadBars(sym, tf, startFor(days)), {
+  const [tf, days, baseShow] = RANGES[range];
+  const state = useData(`gp:${sym}:${range}`, async () => {
+    const r = await chartBars(sym, tf, startFor(days));
+    return { ...r, data: { bars: r.data, feed: r.feed } };
+  }, {
     everyMs: tf.endsWith('Min') ? 30_000 : tf === '1Hour' ? 120_000 : 600_000,
     source: 'Alpaca',
-    note: ALPACA_NOTE,
+    note: 'SIP history, IEX last 15 min',
   });
-  const all = useMemo(() => state.data ?? [], [state.data]);
+  const all = useMemo(() => state.data?.bars ?? [], [state.data]);
+  // 1D and 5D show whole New York sessions (latest 1 or 5 trading days), not a fixed bar count that can
+  // start in yesterday's afternoon. Earlier bars stay loaded for indicator warm-up.
+  const show = useMemo(() => {
+    const sessions = range === '1D' ? 1 : range === '5D' ? 5 : 0;
+    if (!sessions || !all.length) return baseShow;
+    const days = [...new Set(all.map((b) => nyDate(b.t)))].slice(-sessions);
+    return all.filter((b) => nyDate(b.t) >= days[0]!).length;
+  }, [all, range, baseShow]);
+  // Day change = last price vs the official previous close (all exchanges), whatever the chart range.
+  const lastT = all.at(-1)?.t ?? null;
+  const pc = useData(lastT ? `gp:pc:${sym}:${nyDate(lastT)}` : null, async () => {
+    const v = await prevClose(sym, lastT!);
+    return { data: v, fetchedAt: Date.now(), fromCache: false };
+  }, {});
   // Replay shows bars only up to the cursor, and indicators see only that history (no look-ahead).
   const data = useMemo(() => (replay == null ? all : all.slice(0, replay + 1)), [all, replay]);
 
@@ -310,16 +328,21 @@ export default function ChartPanel({ security, code }: PanelProps) {
   });
 
   const last = data.at(-1);
-  const prev = data.at(-2);
   return (
     <div className="panel-fill">
       <div className="toolbar">
         <strong className="accent">{sym}</strong>
-        {last && (
-          <span className={last.c >= (prev?.c ?? last.c) ? 'up' : 'down'}>
-            {last.c.toFixed(2)} {prev ? `${((last.c / prev.c - 1) * 100).toFixed(2)}%` : ''}
-          </span>
-        )}
+        {last && replay == null && (() => {
+          const base = pc.data ?? null;
+          const chg = base ? last.c - base : null;
+          return (
+            <span className={dir(chg)} title={base ? `vs previous close ${base.toFixed(2)} (all exchanges)` : 'previous close loading'}>
+              {last.c.toFixed(2)} {chg != null && base ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${chg >= 0 ? '+' : ''}${((chg / base) * 100).toFixed(2)}%)` : ''}
+            </span>
+          );
+        })()}
+        {last && replay != null && <span className="muted">{last.c.toFixed(2)} (replay)</span>}
+        {state.data && <span className="muted" title="SIP = every US exchange (free for data over 15 minutes old). IEX = one exchange.">{state.data.feed}</span>}
         {(Object.keys(RANGES) as Range[]).map((r) => (
           <button key={r} aria-pressed={range === r} onClick={() => { setRange(r); setReplay(null); }}>{r}</button>
         ))}
@@ -383,7 +406,7 @@ export default function ChartPanel({ security, code }: PanelProps) {
         </div>
       )}
       {tool && <div className="accent" style={{ fontSize: 11 }}>{tool === 'hline' ? 'Click a price level.' : pending ? 'Click the second point.' : 'Click the first point.'}</div>}
-      <DataStatus state={state} keyName="Alpaca" empty={state.data?.length === 0} />
+      <DataStatus state={state} keyName="Alpaca" empty={state.data?.bars.length === 0} />
       {kind === 'pnf' ? <PointFigure bars={data} /> : (
         <div className="grow" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
           <div ref={box} className="chart-box grow" />

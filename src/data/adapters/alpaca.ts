@@ -76,6 +76,60 @@ export async function bars(symbol: string, tf: Timeframe, start: string, end?: s
 }
 
 /**
+ * Chart bars: the all-exchange SIP feed up to 16 minutes ago (free plan allows SIP history), then IEX for the
+ * last 15 minutes so the chart stays live. Falls back to IEX only if SIP is refused. IEX alone is one venue
+ * (about 2 to 3% of volume), which makes intraday candles thin and sometimes wrong.
+ */
+export async function chartBars(symbol: string, tf: Timeframe, start: string): Promise<Fetched<Bar[]> & { feed: string }> {
+  const cut = Date.now() - 16 * 60_000;
+  let hist: Fetched<Bar[]>;
+  try {
+    hist = await barsFeed(symbol, tf, start, 'sip', new Date(cut).toISOString());
+  } catch {
+    const r = await barsFeed(symbol, tf, start, 'iex');
+    return { ...r, feed: 'IEX only' };
+  }
+  // Daily and longer bars: today's still-forming bar comes from IEX.
+  const lastT = hist.data.at(-1)?.t ?? Date.parse(start);
+  const live = await barsFeed(symbol, tf, new Date(lastT).toISOString(), 'iex').catch(() => null);
+  const merged = [...hist.data];
+  for (const b of live?.data ?? []) {
+    if (b.t < lastT) continue;
+    if (b.t === lastT) {
+      // Same bucket: keep SIP's open/high/low/volume, extend with the newer IEX close.
+      const h = merged[merged.length - 1]!;
+      merged[merged.length - 1] = { ...h, h: Math.max(h.h, b.h), l: Math.min(h.l, b.l), c: b.c };
+    } else merged.push(b);
+  }
+  return { data: merged, fetchedAt: live?.fetchedAt ?? hist.fetchedAt, fromCache: false, feed: live?.data.some((b) => b.t > lastT) ? 'SIP + IEX last 15 min' : 'SIP (all exchanges)' };
+}
+
+async function barsFeed(symbol: string, tf: Timeframe, start: string, feed: 'iex' | 'sip', end?: string): Promise<Fetched<Bar[]>> {
+  const out: Bar[] = [];
+  let token: string | undefined;
+  let fetchedAt: number;
+  let pages = 0;
+  do {
+    const r = await up<{ bars: ABar[] | null; next_page_token: string | null }>('alpaca', `/v2/stocks/${encodeURIComponent(symbol)}/bars`, { timeframe: tf, start, end, limit: 10000, adjustment: 'all', feed, page_token: token });
+    fetchedAt = r.fetchedAt;
+    for (const b of r.data.bars ?? []) out.push(toBar(b));
+    token = r.data.next_page_token ?? undefined;
+  } while (token && ++pages < 20);
+  return { data: out, fetchedAt, fromCache: false };
+}
+
+/** Previous regular-session close (official, all exchanges) before the session of `t`. */
+export async function prevClose(symbol: string, t: number): Promise<number | null> {
+  const day = nyDate(t);
+  const r = await barsFeed(symbol, '1Day', startFor(12), 'sip', new Date(Date.now() - 16 * 60_000).toISOString()).catch(() => barsFeed(symbol, '1Day', startFor(12), 'iex'));
+  const prior = r.data.filter((b) => nyDate(b.t) < day);
+  return prior.at(-1)?.c ?? null;
+}
+
+/** New York calendar date (YYYY-MM-DD) of a timestamp. */
+export const nyDate = (t: number) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+/**
  * Daily bars for several symbols at once (COMP, correlation, breadth, backtests).
  * `history: true` asks for the all-exchange SIP feed ending 16 minutes ago (allowed on the free
  * plan for historical data); if refused, it falls back to IEX.
