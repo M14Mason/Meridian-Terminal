@@ -255,6 +255,13 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const feature = url.searchParams.get('feature') ?? 'explain';
     const inputs: Record<string, string> = {
       explain: 'PANEL: TEST. VISIBLE CONTENT: SPY 700.00 +0.50%',
+      ask: 'FUNCTIONS: GP: Chart; EQS: Screener\n\nREQUEST: profitable companies over $50B with ROE above 20%',
+      valuation: 'COMPANY: TEST. PRICE: $100. CODE VALUATION METHODS: DCF (base): $90; Peer median P/E: $110. CODE RANGE: 90 to 110; CODE VERDICT: fairly valued',
+      predict: 'TICKER: TEST. HORIZON: Next week. LAST CLOSE: 100. CODE RANGE (80%): 96 to 104. BASELINE P(up) = 0.55.',
+      brief: 'DATE: 2026-10-19\nETF QUOTES: SPY 700 +0.5%\nHEADLINES:\n- Stocks rise',
+      critic: 'STATS: 4 closed trades, win rate 50%.\nTRADES:\ndate|ticker|side|pnl|notes\n2026-10-01|AAPL|long|50|breakout\n2026-10-02|MSFT|long|-80|chased',
+      filing: 'COMPANY: TEST. CURRENT RELEASE: Revenue rose 10% to $5 billion. Net income was $1 billion.',
+      supply: 'COMPANY: TEST. PROPERTIES: Plant in Ohio.\nRELEVANT PARAGRAPHS:\nSales to Walmart Inc. accounted for 18% of our net sales. We rely on Foxconn Ltd. for assembly.',
       cmp: 'DATE: 2026-10-19\nCANDIDATES:\nt|capB|pe|roe\nAAPL|5000|35|150\nMSFT|3900|33|35\nNVDA|5100|45|90\nJPM|900|14|17\nXOM|700|14|15\nJNJ|600|16|25\nLLY|1100|50|70\nWMT|900|38|22\nV|800|30|50\nPG|380|25|30\nKO|300|24|40\nCOST|440|52|30',
     };
     const out = await runAi({ feature, input: inputs[feature] ?? inputs.explain, fresh: true }, async (n) => { const r = await vault.resolveKey(n); return r.ok ? r.data : null; }, (f, m, i, o, usd) => vault.recordUsage(f, m, i, o, usd), ctx);
