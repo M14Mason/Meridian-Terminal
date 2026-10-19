@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePanelMeta } from '../shell/panelMeta';
+import { usePanelData, usePanelMeta } from '../shell/panelMeta';
 import { cached, isMissingKey, type Fetched } from './client';
 
 export interface DataState<T> {
@@ -82,5 +82,6 @@ export function useData<T>(key: string | null, load: () => Promise<Fetched<T>>, 
   }, [key, tick, opts.everyMs, opts.cacheKey]);
 
   usePanelMeta(key && opts.source ? { fetchedAt: state.fetchedAt, source: opts.source, note: opts.note } : null);
+  usePanelData(key, opts.source, state.data, state.fetchedAt);
   return { ...state, data: state.data, refresh };
 }

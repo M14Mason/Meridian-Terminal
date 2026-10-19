@@ -76,12 +76,26 @@ export function extractJson(text: string): unknown {
 const str = (max = 600): Schema => ({ t: 'string', max });
 const strs = (max = 8, len = 400): Schema => ({ t: 'array', of: str(len), max });
 
-export type Feature = 'explain' | 'ask' | 'valuation' | 'predict' | 'brief' | 'critic' | 'filing' | 'cmp' | 'supply';
+export type Feature = 'explain' | 'analyze' | 'ask' | 'valuation' | 'predict' | 'brief' | 'critic' | 'filing' | 'cmp' | 'supply';
 
 export interface FeatureSpec { model: ModelId; maxTokens: number; version: string; cacheTtl: number; schema: Schema; maxInput: number }
 
 export const FEATURES: Record<Feature, FeatureSpec> = {
   explain: { model: MODELS.haiku, maxTokens: 700, version: 'explain-2', cacheTtl: 6 * 3600, maxInput: 9000, schema: { t: 'object', props: { summary: str(700), points: strs(6), watch: str(400) } } },
+  analyze: {
+    model: MODELS.sonnet, maxTokens: 1800, version: 'analyze-1', cacheTtl: 30 * 60, maxInput: 32000,
+    schema: { t: 'object', props: {
+      takeaway: str(240),
+      stance: { t: 'string', enum: ['bullish', 'bearish', 'neutral', 'mixed', 'not applicable'] },
+      summary: str(1200),
+      signals: { t: 'array', max: 10, of: { t: 'object', props: { what: str(220), read: { t: 'string', enum: ['bullish', 'bearish', 'neutral'] }, why: str(400) } } },
+      implications: strs(6),
+      risks: strs(5),
+      watch: strs(5),
+      confidence: { t: 'string', enum: ['low', 'medium', 'high'] },
+      gaps: str(500),
+    } },
+  },
   ask: {
     model: MODELS.haiku, maxTokens: 500, version: 'ask-2', cacheTtl: 24 * 3600, maxInput: 8000,
     schema: { t: 'object', optional: ['filters', 'sort', 'desc', 'command'], props: {

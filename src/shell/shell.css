@@ -142,7 +142,7 @@
 
 /* Data age badge and panel states */
 .age { font-size: 10px; white-space: nowrap; flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
-.mshell__meta { padding: 2px 16px; border-bottom: 1px solid var(--hairline); }
+.mshell__meta { display: flex; align-items: center; gap: 8px; padding: 2px 16px; border-bottom: 1px solid var(--hairline); }
 .state { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
 .label-proxy { color: var(--link); font-size: 11px; }
 .disclaimer { color: var(--text-dim); font-size: 11px; border-top: 1px solid var(--hairline); padding-top: 4px; margin-top: 6px; }

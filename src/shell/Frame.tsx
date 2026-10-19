@@ -3,7 +3,7 @@ import { animateIn } from '../lib/motion';
 import { COLS, ROW_PX, type Action, type FrameState, type PanelState } from './layout';
 import { PanelHost } from './PanelHost';
 import { Explain } from '../ai/Explain';
-import { AgeBadge, type PanelMeta } from './panelMeta';
+import { AgeBadge, type PanelData, type PanelMeta } from './panelMeta';
 import { findFunction } from './registry';
 import { LINK_COLORS, type LinkColor } from './types';
 
@@ -30,6 +30,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
   const [metaState, setMetaState] = useState<{ key: string; meta: PanelMeta | null }>({ key: '', meta: null });
   const [explain, setExplain] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [dataStore] = useState<PanelData>(() => new Map());
   const active = panels[frame.active];
 
   useEffect(() => animateIn(ref.current), []);
@@ -149,8 +150,8 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
         <button className={`frame__link link--${active.link ?? 'none'}`} onClick={cycleLink} title="Link color: panels with the same color follow the same ticker" aria-label={`Link color ${active.link ?? 'none'}`}>
           ●
         </button>
-        <button className="frame__btn" onClick={() => setExplain((x) => !x)} aria-pressed={explain} title="Explain this panel (AI)" aria-label="Explain this panel">
-          ?
+        <button className="frame__btn" onClick={() => setExplain((x) => !x)} aria-pressed={explain} title="AI: analyze or explain this panel" aria-label="AI analyze this panel">
+          AI
         </button>
         <button className="frame__btn" onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu} aria-label="Panel menu">
           ≡
@@ -184,8 +185,8 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
       </header>
       {!frame.minimized && (
         <div className="frame__body" ref={bodyRef}>
-          {explain && <Explain key={active.id} getBody={() => bodyRef.current} title={fn?.title ?? active.code} description={fn?.description ?? ''} code={active.code} security={active.security} meta={meta} onClose={() => setExplain(false)} />}
-          <PanelHost onMeta={onMeta} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
+          {explain && <Explain key={active.id} getBody={() => bodyRef.current} getData={() => dataStore} title={fn?.title ?? active.code} description={fn?.description ?? ''} code={active.code} security={active.security} meta={meta} onClose={() => setExplain(false)} />}
+          <PanelHost onMeta={onMeta} dataStore={dataStore} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
         </div>
       )}
       {!frame.minimized && !frame.maximized && !frame.locked && (

@@ -8,6 +8,15 @@ const ok = (id: string, path: string, search = '') => {
 };
 
 describe('buildUpstreamUrl', () => {
+  it('allows Kalshi market data and its text search, nothing else', () => {
+    const k = p('kalshi');
+    const ok = (path: string) => k.allow('GET', new URL(`https://api.elections.kalshi.com${path}`));
+    expect(ok('/v1/search/series?query=nvda&page_size=25')).toBe(true);
+    expect(ok('/trade-api/v2/events?status=open')).toBe(true);
+    expect(ok('/trade-api/v2/portfolio/orders')).toBe(false);
+    expect(ok('/v1/users')).toBe(false);
+    expect(k.allow('POST', new URL('https://api.elections.kalshi.com/v1/search/series'))).toBe(false);
+  });
   it('stays on the provider host', () => {
     expect(buildUpstreamUrl(p('alpaca'), '/v2/stocks/bars', '?symbols=AAPL')?.host).toBe('data.alpaca.markets');
     expect(buildUpstreamUrl(p('alpaca'), '//evil.com/x', '')).toBeNull();

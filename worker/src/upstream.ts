@@ -206,9 +206,10 @@ const SPECS: Spec[] = [
   {
     id: 'kalshi',
     host: 'api.elections.kalshi.com',
-    paths: [/^\/trade-api\/v2\/(events|markets|series)(\/[A-Z0-9-]{1,80})?$/],
+    // v1/search/series is the public search Kalshi's own site uses (read only, no key): finds markets by text like "nvda".
+    paths: [/^\/trade-api\/v2\/(events|markets|series)(\/[A-Z0-9-]{1,80})?$/, /^\/v1\/search\/series$/],
     auth: { kind: 'none' },
-    ttl: [[/./, 300]],
+    ttl: [[/^\/v1\/search/, 120], [/./, 300]],
   },
   {
     id: 'usdm',

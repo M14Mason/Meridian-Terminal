@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
-import { PanelMetaContext, type PanelMeta } from './panelMeta';
+import { PanelDataContext, PanelMetaContext, type PanelData, type PanelMeta } from './panelMeta';
 import { PlannedPanel } from './panels/PlannedPanel';
 import { findFunction, FUNCTIONS } from './registry';
 import type { PanelProps } from './types';
@@ -12,12 +12,13 @@ const LAZY: Record<string, LazyExoticComponent<ComponentType<PanelProps>>> = Obj
 
 const noop = () => undefined;
 
-export function PanelHost({ onMeta, ...props }: PanelProps & { onMeta?: (m: PanelMeta | null) => void }) {
+export function PanelHost({ onMeta, dataStore, ...props }: PanelProps & { onMeta?: (m: PanelMeta | null) => void; dataStore?: PanelData }) {
   const fn = findFunction(props.code);
   if (!fn) return <div className="panel-error down">Unknown function {props.code}</div>;
   const Panel = LAZY[fn.code];
   return (
     <PanelMetaContext.Provider value={onMeta ?? noop}>
+    <PanelDataContext.Provider value={dataStore ?? null}>
     <ErrorBoundary label={fn.code} key={`${fn.code}:${props.security ?? ''}`}>
       {Panel ? (
         <Suspense fallback={<div className="skeleton" aria-busy="true" />}>
@@ -27,6 +28,7 @@ export function PanelHost({ onMeta, ...props }: PanelProps & { onMeta?: (m: Pane
         <PlannedPanel fn={fn} security={props.security} />
       )}
     </ErrorBoundary>
+    </PanelDataContext.Provider>
     </PanelMetaContext.Provider>
   );
 }

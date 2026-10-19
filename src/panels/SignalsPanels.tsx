@@ -1,7 +1,8 @@
 // Real-world signals and market structure: HURR, QUAK, FIRE, WIKI, TRIAL, LOBB, PMKT, GOVC, SI, DPOOL,
 // CROP, FOMC, MEVT, CACT, TV (catalog 58, 60, 65, 79, 81, 85 to 98; owner ideas 5 and 9).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { changeRatio, wordDiff } from '../../shared/diff';
+import { matchEvent, normEvents, normSearch, type KEvent } from '../../shared/kalshi';
 import { profile } from '../data/adapters/sec';
 import { direct } from '../data/adapters/direct';
 import { up, upPost } from '../data/client';
@@ -197,22 +198,73 @@ function Lobb({ sym }: { sym: string }) {
 }
 
 // ---------- PMKT ----------
-function Pmkt() {
+const cents = (v: number | null) => (v == null ? '-' : `${fmt(v, v % 1 ? 1 : 0)}¢`);
+function MarketRows({ e }: { e: KEvent }) {
+  const [all, setAll] = useState(false);
+  const rows = all ? e.markets : e.markets.slice(0, 6);
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div><a className="accent" href={`https://kalshi.com/markets/${e.ticker.split('-')[0]!.toLowerCase()}`} target="_blank" rel="noreferrer noopener">{e.title}</a> <span className="muted">{e.sub}</span></div>
+      <table className="grid-table">
+        <thead><tr><th>Outcome</th><th className="num">Chance</th><th /><th className="num">Bid</th><th className="num">Ask</th><th className="num">Last</th><th className="num">Chg</th><th className="num">Vol 24h</th><th className="num">Vol</th><th>Closes</th></tr></thead>
+        <tbody>{rows.map((m) => {
+          const chg = m.last != null && m.prev != null && m.prev > 0 ? m.last - m.prev : null;
+          return (
+            <tr key={m.ticker}>
+              <td title={m.ticker}>{m.label}</td>
+              <td className="num accent"><strong>{m.chance == null ? '-' : `${fmt(m.chance, m.chance < 1 || m.chance > 99 ? 1 : 0)}%`}</strong></td>
+              <td style={{ width: 70 }}><div style={{ height: 6, background: 'var(--border, #333)' }}><div style={{ width: `${Math.min(100, m.chance ?? 0)}%`, height: 6, background: 'var(--accent, #ffa028)' }} /></div></td>
+              <td className="num up">{cents(m.bid)}</td>
+              <td className="num down">{cents(m.ask)}</td>
+              <td className="num">{cents(m.last)}</td>
+              <td className={`num ${dir(chg ?? 0)}`}>{chg == null || chg === 0 ? '' : `${chg > 0 ? '+' : ''}${fmt(chg, chg % 1 ? 1 : 0)}`}</td>
+              <td className="num muted">{fmtBig(m.vol24)}</td>
+              <td className="num muted">{fmtBig(m.vol)}</td>
+              <td className="muted">{m.close ? m.close.slice(0, 10) : '-'}</td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+      {e.markets.length > 6 && <button className="link-btn" onClick={() => setAll(!all)}>{all ? 'show fewer' : `show all ${e.markets.length}`}</button>}
+    </div>
+  );
+}
+
+function Pmkt({ sym }: { sym: string }) {
   const [cat, setCat] = useState('Economics');
-  const st = useData('pmkt', () => up<{ events: { event_ticker: string; title: string; category: string; markets?: { ticker: string; yes_sub_title?: string; subtitle?: string; last_price?: number; yes_bid?: number; yes_ask?: number; volume?: number; close_time?: string }[] }[] }>('kalshi', '/trade-api/v2/events', { status: 'open', with_nested_markets: 'true', limit: 200 }), { source: 'Kalshi', everyMs: 5 * 60_000 });
-  const cats = [...new Set((st.data?.events ?? []).map((e) => e.category))].sort();
-  const events = (st.data?.events ?? []).filter((e) => e.category === cat);
+  const [text, setText] = useState('');
+  const [q, setQ] = useState('');
+  // Search Kalshi 400 ms after typing stops.
+  useEffect(() => {
+    const t = setTimeout(() => setQ(text.trim()), 400);
+    return () => clearTimeout(t);
+  }, [text]);
+  const st = useData('pmkt', async () => {
+    const r = await up<{ events?: Record<string, unknown>[] }>('kalshi', '/trade-api/v2/events', { status: 'open', with_nested_markets: 'true', limit: 200 });
+    return { ...r, data: normEvents(r.data) };
+  }, { source: 'Kalshi', everyMs: 5 * 60_000 });
+  const found = useData(q.length >= 2 ? `pmkt:q:${q.toLowerCase()}` : null, async () => {
+    const r = await up<{ current_page?: Record<string, unknown>[] }>('kalshi', '/v1/search/series', { query: q, page_size: 25 });
+    return { ...r, data: normSearch(r.data) };
+  }, { source: 'Kalshi search', everyMs: 2 * 60_000 });
+  const loaded = st.data ?? [];
+  const cats = [...new Set(loaded.map((e) => e.category))].sort();
+  const searching = q.length >= 2;
+  // Search results first, then any loaded events that also match (deduplicated).
+  const hits = searching ? [...(found.data ?? []), ...loaded.filter((e) => matchEvent(e, q))].filter((e, i, arr) => e.markets.length && arr.findIndex((x) => x.ticker === e.ticker) === i) : [];
+  const events = searching ? hits : loaded.filter((e) => e.category === cat && e.markets.length);
   return (
     <>
-      <div className="toolbar">{cats.map((c) => <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>
-      <DataStatus state={st} />
-      {events.slice(0, 40).map((e) => (
-        <div key={e.event_ticker} style={{ marginBottom: 6 }}>
-          <div className="accent">{e.title}</div>
-          <table className="grid-table"><tbody>{(e.markets ?? []).sort((a, b) => (b.last_price ?? 0) - (a.last_price ?? 0)).slice(0, 5).map((m) => <tr key={m.ticker}><td>{m.yes_sub_title || m.subtitle || m.ticker}</td><td className="num accent">{m.last_price != null ? `${m.last_price}%` : '-'}</td><td className="num muted">bid {m.yes_bid ?? '-'} / ask {m.yes_ask ?? '-'}</td><td className="num muted">vol {fmtBig(m.volume)}</td></tr>)}</tbody></table>
-        </div>
-      ))}
-      <div className="disclaimer">Kalshi (a CFTC-regulated exchange) public market data. Prices in cents approximate the crowd&apos;s implied probability. Viewing only; this app never trades. Thin markets can be noisy.</div>
+      <div className="toolbar">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search markets: nvda, fed, cpi, bitcoin..." aria-label="Search prediction markets" style={{ width: 260 }} />
+        <button onClick={() => setText(sym)}>{sym}</button>
+        {text && <button onClick={() => setText('')}>CLEAR</button>}
+      </div>
+      {!searching && <div className="toolbar">{cats.map((c) => <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>}
+      <DataStatus state={searching ? found : st} />
+      {searching && !found.loading && <p className="muted">{events.length ? `${events.length} events match "${q}"` : `No open markets match "${q}". Try a company name (nvidia) or topic (fed, cpi, oil).`}</p>}
+      {events.slice(0, 40).map((e) => <MarketRows key={e.ticker} e={e} />)}
+      <div className="disclaimer">Kalshi (a CFTC-regulated exchange) public market data. Chance is the market-implied probability: the bid/ask midpoint when the spread is 10¢ or less, otherwise the last trade. Bid and ask are the YES side in cents (a YES contract pays $1). Model estimate of the crowd, not financial advice. Viewing only; this app never trades. Thin markets can be noisy.</div>
     </>
   );
 }
@@ -434,7 +486,7 @@ export default function SignalsPanels({ code, security, run }: PanelProps) {
       {code === 'WIKI' && <Wiki sym={sym} />}
       {code === 'TRIAL' && <Trial sym={sym} />}
       {code === 'LOBB' && <Lobb sym={sym} />}
-      {code === 'PMKT' && <Pmkt />}
+      {code === 'PMKT' && <Pmkt sym={sym} />}
       {code === 'GOVC' && <Govc sym={sym} />}
       {code === 'SI' && <Si sym={sym} />}
       {code === 'DPOOL' && <Dpool sym={sym} />}

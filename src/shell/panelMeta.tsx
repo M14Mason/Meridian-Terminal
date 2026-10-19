@@ -10,6 +10,19 @@ export interface PanelMeta {
 
 export const PanelMetaContext = createContext<(m: PanelMeta | null) => void>(() => undefined);
 
+/** Every dataset the panel loaded, by useData key, so ANALYZE can read the raw data and not only the screen. */
+export type PanelData = Map<string, { source: string; data: unknown; at: number | null }>;
+export const PanelDataContext = createContext<PanelData | null>(null);
+
+export function usePanelData(key: string | null, source: string | undefined, data: unknown, at: number | null): void {
+  const store = useContext(PanelDataContext);
+  useEffect(() => {
+    if (!store || !key || data === undefined) return;
+    store.set(key, { source: source ?? key, data, at });
+    return () => void store.delete(key);
+  }, [store, key, source, data, at]);
+}
+
 export function usePanelMeta(meta: PanelMeta | null): void {
   const set = useContext(PanelMetaContext);
   const key = meta ? `${meta.fetchedAt}|${meta.source}|${meta.note ?? ''}` : '';

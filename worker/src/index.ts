@@ -255,6 +255,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const feature = url.searchParams.get('feature') ?? 'explain';
     const inputs: Record<string, string> = {
       explain: 'PANEL: TEST. VISIBLE CONTENT: SPY 700.00 +0.50%',
+      analyze: 'PANEL: GP for TEST: Chart.\nPRICE BARS (code computed): Last close: 100. RSI(14): 74 (overbought zone). MACD histogram 0.8 (falling). SMA50 92 (price above by 8.7%); SMA200 85 (price above by 17.6%). 52-week range 70 to 102.\nFUNDAMENTALS: P/E 30, revenue growth 12%, net margin 20%.',
       ask: 'FUNCTIONS: GP: Chart; EQS: Screener\n\nREQUEST: profitable companies over $50B with ROE above 20%',
       valuation: 'COMPANY: TEST. PRICE: $100. CODE VALUATION METHODS: DCF (base): $90; Peer median P/E: $110. CODE RANGE: 90 to 110; CODE VERDICT: fairly valued',
       predict: 'TICKER: TEST. HORIZON: Next week. LAST CLOSE: 100. CODE RANGE (80%): 96 to 104. BASELINE P(up) = 0.55.',

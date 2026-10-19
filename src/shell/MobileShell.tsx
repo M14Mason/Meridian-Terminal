@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { slideIn } from '../lib/motion';
 import { CommandLine } from './CommandLine';
 import { PanelHost } from './PanelHost';
-import { AgeBadge, type PanelMeta } from './panelMeta';
+import { Explain } from '../ai/Explain';
+import { AgeBadge, type PanelData, type PanelMeta } from './panelMeta';
+import { findFunction } from './registry';
 import { resolveCommand } from './runCommand';
 import { AlertBanner, OfflineBanner, PortfolioBanner, SpendBanner, StatusBar } from './StatusBar';
 import { TickerTape } from '../panels/TickerTape';
@@ -52,6 +54,8 @@ export function MobileShell() {
   const touch = useRef<{ x: number; y: number; top: number } | null>(null);
   const [pull, setPull] = useState(0);
   const [meta, setMeta] = useState<PanelMeta | null>(null);
+  const [ai, setAi] = useState(false);
+  const [dataStore] = useState<PanelData>(() => new Map());
 
   useEffect(() => {
     try {
@@ -119,18 +123,18 @@ export function MobileShell() {
       <PortfolioBanner />
       <AlertBanner />
       {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
-      {meta && (
-        <div className="mshell__meta">
-          <AgeBadge meta={meta} />
-        </div>
-      )}
+      <div className="mshell__meta">
+        {meta && <AgeBadge meta={meta} />}
+        <button className="frame__btn" style={{ marginLeft: 'auto' }} onClick={() => setAi((x) => !x)} aria-pressed={ai} aria-label="AI analyze this panel">AI</button>
+      </div>
       {pull > 0 && (
         <div className="mshell__pull muted" style={{ height: pull }}>
           {pull >= 60 ? 'Release to refresh' : 'Pull to refresh'}
         </div>
       )}
       <div ref={bodyRef} className="mshell__body" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        <PanelHost onMeta={setMeta} panelId={`m-${state.active}`} code={cur.code} security={cur.security} args={{}} run={(c, o) => void run(c, o?.replace ?? false)} />
+        {ai && <Explain key={`${cur.code}:${cur.security ?? ''}`} getBody={() => bodyRef.current} getData={() => dataStore} title={findFunction(cur.code)?.title ?? cur.code} description={findFunction(cur.code)?.description ?? ''} code={cur.code} security={cur.security} meta={meta} onClose={() => setAi(false)} />}
+        <PanelHost onMeta={setMeta} dataStore={dataStore} panelId={`m-${state.active}`} code={cur.code} security={cur.security} args={{}} run={(c, o) => void run(c, o?.replace ?? false)} />
       </div>
       <nav className="tabbar" aria-label="Sections">
         {TABS.map((t, i) => (
