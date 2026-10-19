@@ -1,5 +1,7 @@
 # Owner setup
 
+> **Status 2026-10-19:** steps 1 to 3 are done (Pages, Cloudflare, Worker, secrets, PROXY_URL). Your first device is paired. Use the **Final checklist** at the bottom; it is everything left.
+
 Things only you can do. Never paste a key or secret into chat. You type secrets into your own terminal or into the app's Settings > Keys screen.
 
 Run every command from the repo folder.
@@ -46,29 +48,37 @@ Each command asks you to paste a value. The value goes straight to Cloudflare an
 
 ## 4. API keys
 
-Two ways, pick either per key:
+Settings > Keys (in the app) > paste > Save. Stored encrypted in the proxy, synced to every device, never shown again. A Worker secret with the same name (`npx wrangler secret put NAME -c worker/wrangler.toml`) takes priority.
 
-* **In the app (recommended):** Settings > Keys > paste > Save. Stored encrypted in the proxy, synced to every device, never shown again.
-* **Terminal:** `npx wrangler secret put ALPACA_KEY_ID -c worker/wrangler.toml` (dashboard secrets win over app-saved keys).
-
-Free keys to request (all free tiers):
-
-| Key | Where | Notes |
+| Key | Where to get it | Used for |
 | --- | --- | --- |
-| Alpaca | https://app.alpaca.markets > **Paper** account > API Keys | Use the PAPER account's keys. Same market data, and a leaked paper key cannot move real money. |
-| Anthropic | You already have one | Also set a monthly spend limit at https://console.anthropic.com > Billing > Limits as a backstop. |
-| FRED | https://fred.stlouisfed.org/docs/api/api_key.html | |
-| EIA | https://www.eia.gov/opendata/register.php | |
-| Finnhub | https://finnhub.io/register | |
-| AISStream | https://aisstream.io (sign in with GitHub) | Needed for the tanker map (M6). |
+| Alpaca (key ID + secret) | https://app.alpaca.markets > **Paper** account > API Keys | Quotes, charts, news, options. Use PAPER keys: same data, cannot move real money. |
+| Anthropic | https://console.anthropic.com > API Keys | Every AI feature (the only paid item). Set a monthly limit under Billing > Limits as a backstop. |
+| FRED | https://fred.stlouisfed.org/docs/api/api_key.html | Macro dashboards, yield curve, heatmaps |
+| EIA | https://www.eia.gov/opendata/register.php | Oil, gas and power panels |
+| Finnhub | https://finnhub.io/register | Metrics, peers, earnings, ratings |
+| Massive (Polygon) | https://massive.com (Stocks Basic, free) | Screener, breadth, relative volume, dividends |
+| AISStream | https://aisstream.io (sign in with GitHub) | Tanker map |
+| Resend | https://resend.com/signup with **masonngo70@gmail.com** > API Keys > Create | Alert emails. The free plan only sends to the email you signed up with, which is the alert address already set in the proxy. |
+| Copernicus client ID + secret | https://shapps.dataspace.copernicus.eu/dashboard > User settings > OAuth clients | Satellite images (SAT) |
+| NASA FIRMS | https://firms.modaps.eosdis.nasa.gov/api/map_key/ | Wildfires (FIRE) |
+| CoinGecko, USDA NASS (optional) | coingecko.com/api, quickstats.nass.usda.gov/api | Crypto sectors, crop reports |
 
-Optional keys (only when the related panel is built): USDA NASS, PatentsView, Copernicus Data Space, FINRA. Reddit is not used (omitted).
+Not needed: API Ninjas (transcripts are premium only), FINRA (public data is keyless), Reddit and PatentsView (omitted).
 
-## 5. Decisions Claude needs from you (no secrets)
+## 5. Decisions already made
 
-* **SEC User-Agent:** SEC requires a name and contact email in every request header. Which name and email should the proxy send? It is stored as a Worker variable, not in the repo.
+* SEC User-Agent and alert email: set by Claude as Worker secrets (not in the repo).
+* Supply chain: the 500 largest companies are extracted by Claude Code sessions (no API cost); any other company: press EXTRACT WITH SONNET in SPLC (cost shown first, about $0.02).
 
-## 6. Later milestones
+## Final checklist (about 15 minutes, once)
 
-* **Alert email (M11):** verify your email as a destination in Cloudflare Email Routing. Steps will be added here.
-* **Robinhood (M10):** you sign in on Robinhood's own page. Turn ON trade approval for agent actions in Robinhood, and confirm with the account owner that connecting is allowed (the account may be custodial).
+1. **Keys:** add any key above that SET > Keys shows as "not set". Then open SET > Data health: every source should turn green within a few minutes.
+2. **Robinhood (read only):** before connecting, turn ON trade approval for agent actions in the Robinhood app, and confirm with the account owner that connecting is allowed (you are a student; the account may be custodial). Then PORT > CONNECT ROBINHOOD > sign in on Robinhood's page > back in PORT press REFRESH. If Robinhood refuses the connection, tell Claude "update the portfolio" (see `scripts/update-portfolio.md`).
+3. **Alerts:** ALRT > TEST ALERT. You should get an email within a minute (after adding the Resend key) and an orange banner on every open device.
+4. **AI:** press **?** on any panel header. Then try ASK, VAL, BRIF and CMP (CMP shows its cost before it runs).
+5. **Satellite:** open SAT once; if it says the Copernicus key is not set or rejected, recheck both Copernicus fields.
+6. **Phone:** open https://m14mason.github.io/Meridian-Terminal/ in Safari > Share > Add to Home Screen. Pair it: on the Mac, SET > Devices > Add device, then type the six-digit code on the phone within 3 minutes.
+7. **Data jobs:** already started by Claude. They run every weekday morning on their own (GitHub > Actions > Data jobs).
+
+Personal research tool. Not financial advice. Data may be delayed, incomplete or wrong.

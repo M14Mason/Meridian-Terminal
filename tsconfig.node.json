@@ -17,6 +17,8 @@
   },
   "include": [
     "vite.config.ts",
+    "playwright.config.ts",
+    "e2e",
     "tests",
     "worker/src/**/*.test.ts",
     "worker/src/test-sql.ts",

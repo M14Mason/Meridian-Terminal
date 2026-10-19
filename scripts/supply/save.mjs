@@ -8,6 +8,9 @@ import { checkShard, edges, toRows } from '../../shared/supply.ts';
 const input = JSON.parse(readFileSync(0, 'utf8'));
 mkdirSync('public/supply/c', { recursive: true });
 const files = readdirSync('.cache/supply');
+// Counterparty tickers must be real NYSE or Nasdaq listings (SEC list cached by the main session).
+const listed = (() => { try { return new Set(JSON.parse(readFileSync('.cache/sec-tickers.json', 'utf8')).data.filter((r) => /^(NYSE|Nasdaq)$/.test(r[3])).map((r) => r[2])); } catch { return null; } })();
+const uni = JSON.parse(readFileSync('public/supply/universe.json', 'utf8')).top;
 const today = new Date().toISOString().slice(0, 10);
 const progPath = 'public/supply/progress.json';
 
@@ -15,12 +18,14 @@ for (const x of input) {
   const f = files.find((n) => n.endsWith(`-${x.t}.txt`));
   if (!f) { console.log(`${x.t}: no prep file`); continue; }
   const head = readFileSync(`.cache/supply/${f}`, 'utf8').split('\n').slice(0, 3);
-  const [, cik, name] = /CIK (\d+) \| ([^|]+) \|/.exec(head[0]) ?? [];
-  const [, form, date, , url] = /FILING (\S+) (\S+) period (\S*) (\S+)/.exec(head[2]) ?? [];
+  const u = uni.find((r) => r.t === x.t);
+  const [, cik, name] = /CIK (\d+) \| ([^|]+) \|/.exec(head[0]) ?? [null, String(u?.cik ?? 0), u?.name ?? x.t];
+  // Companies with no annual report on EDGAR still get a shard (no relationships) so they count as done.
+  const [, form, date, , url] = /FILING (\S+) (\S+) period (\S*) (\S+)/.exec(head[2] ?? '') ?? [null, 'none', '', '', 'https://www.sec.gov/'];
   const shard = {
     v: 1, t: x.t, cik: Number(cik), name: name.trim(), industry: x.industry,
     hq: x.hq, filing: { form, date, url }, facilities: x.facilities ?? [],
-    rels: (x.rels ?? []).map((r) => ({ ...r, src: r.src ?? url })),
+    rels: (x.rels ?? []).map((r) => { const t = r.t && listed && !listed.has(r.t) ? undefined : r.t; if (r.t && !t) console.log(`${x.t}: dropped unlisted ticker ${r.t}`); return { ...r, t, src: r.src ?? url }; }),
     gaps: x.gaps ?? '', model: 'claude-opus-5-5 (Claude Code session)', at: today,
   };
   const err = checkShard(shard);
