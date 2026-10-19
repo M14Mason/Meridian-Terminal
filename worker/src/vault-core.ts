@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS sync (
   v TEXT, seq INTEGER NOT NULL, PRIMARY KEY (c, id));
 CREATE INDEX IF NOT EXISTS sync_seq ON sync (seq);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, n INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS secrets (name TEXT PRIMARY KEY, iv TEXT NOT NULL, ct TEXT NOT NULL, at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS blobs (name TEXT PRIMARY KEY, body TEXT NOT NULL, at INTEGER NOT NULL);
 `;
 
@@ -368,10 +369,38 @@ export class VaultCore {
     return r ? { body: String(r.body), at: Number(r.at) } : null;
   }
 
+  // ---------- Internal encrypted secrets (Robinhood OAuth tokens, portfolio snapshot; 17.2, 17.7) ----------
+  // Never exposed by any generic route; only the Robinhood module reads them.
+
+  static SECRET_NAMES = new Set(['rh_client', 'rh_pending', 'rh_tokens', 'portfolio']);
+
+  async putSecret(name: string, value: string) {
+    if (!VaultCore.SECRET_NAMES.has(name)) throw new VaultError(400, 'bad name');
+    if (value.length > VaultCore.BLOB_MAX) throw new VaultError(413, 'too large');
+    const { iv, ct } = await encrypt(this.cfg.encryptionKey, value, `secret:${name}`);
+    this.sql.exec('INSERT INTO secrets (name, iv, ct, at) VALUES (?, ?, ?, ?) ON CONFLICT(name) DO UPDATE SET iv = excluded.iv, ct = excluded.ct, at = excluded.at', name, iv, ct, this.now());
+  }
+
+  async getSecret(name: string): Promise<{ value: string; at: number } | null> {
+    if (!VaultCore.SECRET_NAMES.has(name)) throw new VaultError(400, 'bad name');
+    const r = this.rows('SELECT iv, ct, at FROM secrets WHERE name = ?', name)[0];
+    if (!r) return null;
+    return { value: await decrypt(this.cfg.encryptionKey, String(r.iv), String(r.ct), `secret:${name}`), at: Number(r.at) };
+  }
+
+  deleteSecret(name: string) {
+    if (!VaultCore.SECRET_NAMES.has(name)) throw new VaultError(400, 'bad name');
+    this.sql.exec('DELETE FROM secrets WHERE name = ?', name);
+  }
+
   // ---------- Audit ----------
 
   logBlocked(what: string, detail: string) {
     this.audit(`blocked.${what}`, detail);
+  }
+
+  logEvent(event: string, detail: string) {
+    this.audit(event.slice(0, 40), detail.slice(0, 200));
   }
 
   recentAudit(limit = 50) {

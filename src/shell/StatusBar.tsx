@@ -75,3 +75,23 @@ export function SpendBanner() {
     </div>
   );
 }
+
+/** Red banner on every device when the Robinhood portfolio is stale or disconnected (17.4). */
+export function PortfolioBanner({ onOpen }: { onOpen?: () => void }) {
+  const [s, setS] = useState<{ stale: boolean; connected: boolean; hasSnap: boolean; error: string | null; disconnected: boolean } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const check = () => api<{ stale: boolean; connected: boolean; snap: unknown; lastError: string | null; disconnected: boolean }>('/api/portfolio').then((r) => { if (live) setS({ stale: r.stale, connected: r.connected, hasSnap: Boolean(r.snap), error: r.lastError, disconnected: r.disconnected }); }, () => undefined);
+    check();
+    const id = setInterval(check, 10 * 60_000);
+    return () => { live = false; clearInterval(id); };
+  }, []);
+  // Only once the owner has set up the portfolio (connected before or has a snapshot).
+  if (!s || !(s.connected || s.hasSnap) || !(s.stale || s.error)) return null;
+  return (
+    <div className="banner banner--error" role="alert">
+      PORTFOLIO {s.disconnected ? 'DISCONNECTED' : 'STALE'}{s.error ? `: ${s.error}` : ''}. Open PORT to reconnect, or ask Claude &quot;update the portfolio&quot;.{' '}
+      {onOpen && <button className="link-btn" onClick={onOpen}>open PORT</button>}
+    </div>
+  );
+}

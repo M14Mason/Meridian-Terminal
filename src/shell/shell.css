@@ -36,6 +36,7 @@
 .status { display: flex; gap: 10px; font-size: 11px; white-space: nowrap; }
 .banner { padding: 4px 8px; font-size: 12px; }
 .banner--warn { background: var(--down); color: #000; }
+.banner--error { background: #b0161a; color: #fff; font-weight: 600; }
 
 /* Menus */
 .menu {

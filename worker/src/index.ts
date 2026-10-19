@@ -6,6 +6,8 @@ import { log } from './log';
 import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import { satImage, SITES } from './sat';
 import { runAi } from './ai';
+import { finishAuth, snapshot, startAuth, type SecretStore } from './robinhood';
+import { isStale, validSnapshot, type Snapshot } from '../../shared/portfolio';
 import type { Result } from './vault';
 
 export { Vault } from './vault';
@@ -82,6 +84,35 @@ function bearer(req: Request): string | null {
   return h.startsWith('Bearer ') ? h.slice(7).trim() : null;
 }
 
+
+type VaultStub = ReturnType<Env['VAULT']['get']>;
+/** Encrypted internal store for the Robinhood module (tokens and snapshot never leave the proxy). */
+function secretStore(vault: VaultStub): SecretStore {
+  return {
+    get: async (n) => { const r = await vault.getSecret(n); return r.ok && r.data ? r.data.value : null; },
+    put: async (n, v) => { const r = await vault.putSecret(n, v); if (!r.ok) throw new Error(r.error); },
+    del: async (n) => { await vault.deleteSecret(n); },
+    log: async (e, d) => { await vault.logEvent(e, d); },
+  };
+}
+
+interface PortfolioState { snap: Snapshot | null; lastTry: number; lastError: string | null; disconnected: boolean }
+async function readPortfolio(store: SecretStore): Promise<PortfolioState> {
+  const raw = await store.get('portfolio');
+  return raw ? (JSON.parse(raw) as PortfolioState) : { snap: null, lastTry: 0, lastError: null, disconnected: true };
+}
+/** Refreshes from Robinhood and keeps the last good snapshot when a refresh fails. */
+async function refreshPortfolio(store: SecretStore): Promise<PortfolioState> {
+  const cur = await readPortfolio(store);
+  const r = await snapshot(store);
+  const next: PortfolioState = r.ok ? { snap: r.snap, lastTry: Date.now(), lastError: null, disconnected: false } : { ...cur, lastTry: Date.now(), lastError: r.error, disconnected: r.disconnected };
+  await store.put('portfolio', JSON.stringify(next));
+  if (!r.ok) await store.log('portfolio.refresh_failed', r.error);
+  return next;
+}
+const callbackPage = (title: string, body: string, status = 200) =>
+  new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="background:#000;color:#ffa028;font:14px monospace;padding:24px"><h1 style="font-size:16px">${title}</h1><p style="color:#fff">${body}</p></body>`, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'", ...SECURITY_HEADERS } });
+
 async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname;
@@ -105,6 +136,34 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const r = await vault.pairCode(await ipKey(req), body.code, body.deviceName);
     log('pair.code', { ok: r.ok });
     return fromResult(r);
+  }
+
+
+  // Robinhood OAuth callback (17.2). Public because Robinhood's page redirects the browser here; protected by the
+  // single-use state and PKCE verifier created by an authenticated device.
+  if (path === '/api/rh/callback' && method === 'GET') {
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    if (!code || !state) return callbackPage('Robinhood not connected', 'Robinhood did not return an authorization code. Close this tab and try again from PORT.', 400);
+    try {
+      await finishAuth(secretStore(vault), url.origin, code, state);
+      ctx.waitUntil(refreshPortfolio(secretStore(vault)).then(() => undefined, () => undefined));
+      return callbackPage('Robinhood connected (read only)', 'You can close this tab. The portfolio loads in PORT within a minute.');
+    } catch (e) {
+      log('rh.callback.failed', { name: e instanceof Error ? e.message.slice(0, 60) : 'error' });
+      return callbackPage('Robinhood not connected', 'The sign-in could not be completed (expired or rejected). Close this tab and try again from PORT. If it keeps failing, use the fallback in scripts/update-portfolio.md.', 400);
+    }
+  }
+  // Fallback snapshot (17.4): written by the owner-run Claude session with the admin token. Write only.
+  if (path === '/api/portfolio/snapshot' && method === 'POST') {
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
+    const body = await readJson(req, 512 * 1024);
+    if (!validSnapshot(body)) return json({ error: 'invalid snapshot' }, 400);
+    const store = secretStore(vault);
+    const cur = await readPortfolio(store);
+    await store.put('portfolio', JSON.stringify({ ...cur, snap: { ...body, source: 'fallback', at: Date.now() }, lastError: null }));
+    await store.log('portfolio.fallback', `${body.positions.length} positions`);
+    return json({ ok: true });
   }
 
   // AIS live feed. Browsers cannot set headers on WebSockets, so the device first gets a
@@ -223,6 +282,34 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return json(await res.json(), res.status);
   }
 
+  // ----- Portfolio (17), read only -----
+  if (path === '/api/portfolio' && method === 'GET') {
+    const st = await readPortfolio(secretStore(vault));
+    const tok = await vault.getSecret('rh_tokens');
+    const connected = tok.ok && Boolean(tok.data);
+    return json({ ...st, connected, stale: !st.snap || isStale(st.snap.at, Date.now()) });
+  }
+  if (path === '/api/portfolio/refresh' && method === 'POST') {
+    const store = secretStore(vault);
+    const cur = await readPortfolio(store);
+    if (Date.now() - cur.lastTry < 5 * 60_000) return json({ error: 'refreshed less than 5 minutes ago' }, 429);
+    return json(await refreshPortfolio(store));
+  }
+  if (path === '/api/rh/connect' && method === 'POST') {
+    try {
+      return json({ url: await startAuth(secretStore(vault), url.origin, deviceId) });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message.slice(0, 120) : 'failed' }, 502);
+    }
+  }
+  if (path === '/api/rh' && method === 'DELETE') {
+    const store = secretStore(vault);
+    await store.del('rh_tokens');
+    await store.del('rh_pending');
+    await store.log('rh.disconnected', deviceId);
+    return json({ ok: true });
+  }
+
   // Upstream gateway: /api/up/<provider>/<path>
   const up = path.match(/^\/api\/up\/([a-z0-9-]+)(\/.*)$/);
   if (up && (method === 'GET' || method === 'POST')) {
@@ -283,5 +370,12 @@ export default {
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);
     return out;
+  },
+  // Hourly portfolio refresh during US market hours (17.2). Cron in wrangler.toml; free plan allows 5 triggers.
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const vault = env.VAULT.get(env.VAULT.idFromName('main'));
+    const t = await vault.getSecret('rh_tokens');
+    if (!t.ok || !t.data) return;
+    ctx.waitUntil(refreshPortfolio(secretStore(vault)).then(() => undefined));
   },
 } satisfies ExportedHandler<Env>;

@@ -15,6 +15,7 @@ import type { PanelProps } from '../shell/types';
 import { sync, useCollection } from '../state/sync';
 import { SupplyGraph, type GLink, type GNode } from '../three/SupplyGraph';
 import { SupplyChart, type Tile } from './SupplyChart';
+import { SupplyMap, type Place } from './SupplyMap';
 import { criticalReason } from './supplyCritical';
 
 type Sort = 'share' | 'critical' | 'conf' | 'name';
@@ -23,7 +24,7 @@ const short = (s: string, n = 26) => (s.length > n ? `${s.slice(0, n - 1)}…` :
 
 export default function SupplyPanel({ security, run }: PanelProps) {
   const sym = (security ?? 'NVDA').toUpperCase();
-  const [view, setView] = useState<'chart' | 'table' | '3d'>('chart');
+  const [view, setView] = useState<'chart' | 'map' | 'table' | '3d'>('chart');
   const [hops, setHops] = useState(1);
   const [sort, setSort] = useState<Sort>('critical');
   const [sel, setSel] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function SupplyPanel({ security, run }: PanelProps) {
   const base = useData('splc:edges', async () => ({ data: await staticEdges(), fetchedAt: Date.now(), fromCache: false }), { source: 'SEC filings (Meridian extraction)', everyMs: 6 * 3600_000 });
   const mine = useCollection<Shard>('supply');
   const root = useData(`splc:shard:${sym}`, async () => ({ data: await staticShard(sym), fetchedAt: Date.now(), fromCache: false }), { source: 'SEC filings' });
+  const placesSt = useData(view === 'map' ? 'splc:places' : null, async () => { const r = await fetch(`${import.meta.env.BASE_URL}supply/places.json`); return { data: (r.ok ? await r.json() : {}) as Record<string, Place>, fetchedAt: Date.now(), fromCache: false }; }, { source: 'OpenStreetMap Nominatim' });
   const peersSt = useData(`splc:peers:${sym}`, () => fh.peers(sym), { source: 'Finnhub peers' });
   const odShard = mine.find((x) => x.id === sym)?.value ?? null;
   // Prefer whichever extraction read the newer filing (an on-demand refresh beats an older static shard).
@@ -123,7 +125,7 @@ export default function SupplyPanel({ security, run }: PanelProps) {
       <div className="toolbar splc-bar">
         <strong className="accent">{sym}</strong>
         <span className="muted">Show as</span>
-        {(['chart', 'table', '3d'] as const).map((v) => <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{v === '3d' ? '3D' : v.toUpperCase()}</button>)}
+        {(['chart', 'map', 'table', '3d'] as const).map((v) => <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{v === '3d' ? '3D' : v.toUpperCase()}</button>)}
         <span className="muted">Sort by</span>
         <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
           <option value="critical">Critical first</option><option value="share">Quantified exposure</option><option value="conf">Confidence</option><option value="name">Name</option>
@@ -162,6 +164,7 @@ export default function SupplyPanel({ security, run }: PanelProps) {
           selected={sel} onPick={pick}
         />
       )}
+      {view === 'map' && <SupplyMap root={sym} places={placesSt.data ?? {}} links={[...tiles.suppliers.map((t) => ({ id: t.id, role: 'supplier' as const, crit: Boolean(t.crit) })), ...tiles.customers.map((t) => ({ id: t.id, role: 'customer' as const, crit: Boolean(t.crit) })), ...tiles.partners.map((t) => ({ id: t.id, role: 'partner' as const, crit: false }))]} onPick={setSel} />}
       {view === '3d' && graph.nodes.length > 1 && <SupplyGraph nodes={graph.nodes} links={graph.links} selected={sel} onSelect={setSel} />}
       {view !== 'table' && <p className="muted">Tile color: today&apos;s move (green up, red down, grey not listed). <span style={{ color: '#ff433d' }}>CRITICAL</span> = the filing says sole or single source, depends or relies on it, a limited number of suppliers, or a share of 10% or more. Click a tile.</p>}
 

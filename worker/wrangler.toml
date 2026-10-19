@@ -28,3 +28,7 @@ new_sqlite_classes = ["AisHub"]
 
 [observability]
 enabled = true
+
+# Hourly portfolio refresh, Monday to Friday, 13:30 to 21:30 UTC (covers 9:30 to 16:00 New York in EDT and EST).
+[triggers]
+crons = ["30 13-21 * * 1-5"]
