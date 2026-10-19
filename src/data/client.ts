@@ -41,10 +41,15 @@ export interface UpOptions {
   text?: boolean;
 }
 
-function qs(params?: Record<string, string | number | boolean | undefined>): string {
+export type Params = Record<string, string | number | boolean | string[] | undefined>;
+
+function qs(params?: Params): string {
   if (!params) return '';
   const u = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') u.set(k, String(v));
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) for (const x of v) u.append(k, x);
+    else if (v !== undefined && v !== '') u.set(k, String(v));
+  }
   const s = u.toString();
   return s ? `?${s}` : '';
 }
@@ -63,7 +68,7 @@ export async function cached<T>(key: string): Promise<Fetched<T> | null> {
 }
 
 /** GET through the proxy gateway: /api/up/<provider><path>?<params>. */
-export async function up<T>(provider: string, path: string, params?: Record<string, string | number | boolean | undefined>, opts: UpOptions = {}): Promise<Fetched<T>> {
+export async function up<T>(provider: string, path: string, params?: Params, opts: UpOptions = {}): Promise<Fetched<T>> {
   const full = `/api/up/${provider}${path}${qs(params)}`;
   const key = `up:${full}`;
   if (opts.maxAgeMs) {
