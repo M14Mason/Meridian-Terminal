@@ -9,7 +9,7 @@ import { profile as secProfile } from '../data/adapters/sec';
 import { ITEMS_8K, RED_FLAG_ITEMS } from '../../shared/edgar8k';
 import type { Fetched } from '../data/client';
 import { useData } from '../data/useData';
-import { timeNY } from '../lib/format';
+import { timeLocal } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 
@@ -94,7 +94,7 @@ export default function NewsPanel({ code, security, run }: PanelProps) {
             const s = n.provider === 'SEC' ? 0 : keywordSentiment(n.headline);
             return (
               <tr key={n.id}>
-                <td className="muted">{timeNY(n.publishedAt).slice(0, 5)}</td>
+                <td className="muted">{timeLocal(n.publishedAt).slice(0, 5)}</td>
                 <td className="news__head">
                   <a href={n.url} target="_blank" rel="noreferrer noopener">{n.headline}</a>
                   <div className="muted" style={{ fontSize: 10 }}>

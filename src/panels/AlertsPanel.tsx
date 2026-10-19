@@ -1,5 +1,6 @@
 // ALRT: alert rules, settings and history (BUILD_PROMPT 18). Rules sync to every device and run in the proxy
 // every 10 minutes in market hours (hourly otherwise), so they fire with no device open.
+import { dateTimeLocal } from '../lib/format';
 import { useState } from 'react';
 import { DEFAULT_SETTINGS, RULE_LABEL, validRule, type AlertSettings, type Fired, type Rule, type RuleType } from '../../shared/alerts';
 import { useData } from '../data/useData';
@@ -28,7 +29,8 @@ function describe(r: Rule): string {
 export default function AlertsPanel({ security }: PanelProps) {
   const all = useCollection<Rule | AlertSettings>('alerts');
   const rules = all.filter((x) => x.id !== '_settings' && validRule(x.value)) as { id: string; value: Rule }[];
-  const settings: AlertSettings = { ...DEFAULT_SETTINGS, ...((all.find((x) => x.id === '_settings')?.value as AlertSettings | undefined) ?? {}) };
+  // Quiet hours are always Pacific, like every other time in the app.
+  const settings: AlertSettings = { ...DEFAULT_SETTINGS, ...((all.find((x) => x.id === '_settings')?.value as AlertSettings | undefined) ?? {}), tz: DEFAULT_SETTINGS.tz };
   const [tick, setTick] = useState(0);
   const hist = useData(`alrt:hist:${tick}`, async () => ({ data: await api<{ items: Fired[]; email: boolean }>('/api/alerts/history'), fetchedAt: Date.now(), fromCache: false }), { source: 'Proxy alert engine', everyMs: 60_000 });
   const [f, setF] = useState<{ type: RuleType; sym: string; value: string; keyword: string; forms: string; note: string; email: boolean; line: number }>({ type: 'price_above', sym: (security ?? '').toUpperCase(), value: '', keyword: '', forms: '', note: '', email: true, line: 0 });
@@ -75,7 +77,7 @@ export default function AlertsPanel({ security }: PanelProps) {
       </table>
       {!rules.length && <p className="muted">No alerts yet.</p>}
       <div className="toolbar">
-        <span className="muted">Quiet hours (New York)</span>
+        <span className="muted">Quiet hours (Pacific)</span>
         <input type="time" value={hhmm(settings.quietStart)} onChange={(e) => saveSettings({ quietStart: toMin(e.target.value) })} aria-label="Quiet start" />
         <span className="muted">to</span>
         <input type="time" value={hhmm(settings.quietEnd)} onChange={(e) => saveSettings({ quietEnd: toMin(e.target.value) })} aria-label="Quiet end" />
@@ -86,7 +88,7 @@ export default function AlertsPanel({ security }: PanelProps) {
       </div>
       <h4 className="accent" style={{ fontSize: 12, margin: '8px 0 2px' }}>HISTORY</h4>
       <DataStatus state={hist} />
-      <table className="grid-table"><tbody>{(hist.data?.items ?? []).map((h) => <tr key={h.id}><td>{new Date(h.at).toLocaleString()}</td><td>{h.title}</td><td className="muted" style={{ whiteSpace: 'normal', maxWidth: 320 }}>{/^https?:\/\//.test(h.detail) ? <a href={h.detail} target="_blank" rel="noreferrer noopener">source</a> : h.detail}</td><td>{h.emailed ? 'emailed' : ''}</td></tr>)}</tbody></table>
+      <table className="grid-table"><tbody>{(hist.data?.items ?? []).map((h) => <tr key={h.id}><td>{dateTimeLocal(h.at)}</td><td>{h.title}</td><td className="muted" style={{ whiteSpace: 'normal', maxWidth: 320 }}>{/^https?:\/\//.test(h.detail) ? <a href={h.detail} target="_blank" rel="noreferrer noopener">source</a> : h.detail}</td><td>{h.emailed ? 'emailed' : ''}</td></tr>)}</tbody></table>
       <div className="disclaimer">Alerts run in your proxy every 10 minutes in US market hours and hourly otherwise (IEX prices, so levels can differ slightly from other feeds). Email uses Resend&apos;s free tier: save a Resend key in SET &gt; Keys, sent to your own address; max 40 a day. Quiet hours mute email and sound but still log. Not financial advice.</div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { dateTimeLocal } from '../../lib/format';
 import { useRef, useState } from 'react';
 import { validateRecord } from '../../../shared/sync';
 import { DevicesSettings } from '../../features/settings/DevicesSettings';
@@ -79,7 +80,7 @@ export default function SettingsPanel(_: PanelProps) {
         </p>
         <p>
           {status.syncing ? 'Syncing' : status.error ? `Error: ${status.error}` : 'Idle'}. Pending: {status.pending}. Last sync:{' '}
-          {status.lastSync ? new Date(status.lastSync).toLocaleTimeString() : 'never'}.
+          {status.lastSync ? dateTimeLocal(status.lastSync) : 'never'}.
         </p>
         <div className="row">
           <button onClick={() => void sync.flush()}>SYNC NOW</button>

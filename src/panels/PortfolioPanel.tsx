@@ -12,7 +12,7 @@ import * as fh from '../data/adapters/finnhub';
 import { upcomingDividends } from '../data/adapters/massive';
 import { useData } from '../data/useData';
 import { api } from '../lib/api';
-import { dir, fmt, fmtBig, fmtPct, timeNY } from '../lib/format';
+import { dir, fmt, fmtBig, fmtPct, timeLocal } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 
@@ -228,7 +228,7 @@ export default function PortfolioPanel({ run }: PanelProps) {
           {ai.reply && <AiBlock reply={ai.reply}><p>{ai.reply.result.summary}</p><List title="OBSERVATIONS" items={ai.reply.result.points} /><p><span className="accent">Watch:</span> {ai.reply.result.watch}</p></AiBlock>}
         </>
       )}
-      <div className="disclaimer">Read only: this app has no order code, and the proxy blocks every Robinhood tool that is not on the read allowlist. Your portfolio stays in your proxy (encrypted) and on your paired devices; it is never in the repo or logs. Prices: IEX quotes (Alpaca free feed). VaR uses 1 year of history and can understate real losses. Last proxy refresh attempt: {d?.lastTry ? `${timeNY(d.lastTry)} ET` : 'never'}. Not financial advice.</div>
+      <div className="disclaimer">Read only: this app has no order code, and the proxy blocks every Robinhood tool that is not on the read allowlist. Your portfolio stays in your proxy (encrypted) and on your paired devices; it is never in the repo or logs. Prices: IEX quotes (Alpaca free feed). VaR uses 1 year of history and can understate real losses. Last proxy refresh attempt: {d?.lastTry ? `${timeLocal(d.lastTry)} ET` : 'never'}. Not financial advice.</div>
     </div>
   );
 }

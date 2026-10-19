@@ -1,6 +1,6 @@
 // Standard frame for every AI answer: label, model, prompt version, cost, cache and the exact inputs used (16.3).
 import { useState, type ReactNode } from 'react';
-import { timeNY } from '../lib/format';
+import { timeLocal, tzLabel } from '../lib/format';
 import type { AiReply } from './client';
 
 export function AiMeta({ reply }: { reply: AiReply<unknown> }) {
@@ -10,7 +10,7 @@ export function AiMeta({ reply }: { reply: AiReply<unknown> }) {
       <span className="badge">AI</span>
       <strong>{reply.label}</strong>{' '}
       <span className="muted">
-        {reply.model} · {reply.version} · {reply.cached ? 'cached' : `$${reply.usd.toFixed(4)}`} · {timeNY(reply.at)} ET
+        {reply.model} · {reply.version} · {reply.cached ? 'cached' : `$${reply.usd.toFixed(4)}`} · {timeLocal(reply.at)} {tzLabel(reply.at)}
       </span>{' '}
       <button className="link-btn" onClick={() => setOpen((o) => !o)}>{open ? 'hide inputs' : 'inputs used'}</button>
       {open && <pre className="ai-input">{reply.input}</pre>}

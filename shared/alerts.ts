@@ -16,7 +16,7 @@ export interface Rule {
   note?: string;
 }
 export interface AlertSettings { quietStart: number | null; quietEnd: number | null; email: boolean; sound: boolean; tz: string }
-export const DEFAULT_SETTINGS: AlertSettings = { quietStart: null, quietEnd: null, email: true, sound: false, tz: 'America/New_York' };
+export const DEFAULT_SETTINGS: AlertSettings = { quietStart: null, quietEnd: null, email: true, sound: false, tz: 'America/Los_Angeles' };
 export interface Fired { id: string; rule: string; type: RuleType | 'system'; sym?: string; at: number; title: string; detail: string; emailed?: boolean }
 
 export const RULE_LABEL: Record<RuleType, string> = {

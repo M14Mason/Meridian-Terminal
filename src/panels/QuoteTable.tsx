@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Quote } from '../../shared/market';
-import { dir, fmt, fmtBig, fmtChg, fmtPct, timeNY } from '../lib/format';
+import { dir, fmt, fmtBig, fmtChg, fmtPct, timeLocal } from '../lib/format';
 
 /** Dense quote rows with flash-on-change (10.2). */
 export function QuoteTable({ symbols, quotes, onPick, onRemove, labels }: {
@@ -37,7 +37,7 @@ export function QuoteTable({ symbols, quotes, onPick, onRemove, labels }: {
           <th className="num">Chg</th>
           <th className="num">Chg%</th>
           <th className="num" title="IEX volume only, a small share of total market volume">Vol (IEX)</th>
-          <th className="num">Time NY</th>
+          <th className="num">Time PT</th>
           {onRemove && <th aria-label="remove" />}
         </tr>
       </thead>
@@ -56,7 +56,7 @@ export function QuoteTable({ symbols, quotes, onPick, onRemove, labels }: {
               <td className={`num ${dir(q?.change)}`}>{fmtChg(q?.change)}</td>
               <td className={`num ${dir(q?.changePct)}`}>{fmtPct(q?.changePct)}</td>
               <td className="num">{fmtBig(q?.volume)}</td>
-              <td className="num muted">{timeNY(q?.time ?? null)}</td>
+              <td className="num muted">{timeLocal(q?.time ?? null)}</td>
               {onRemove && (
                 <td>
                   <button className="link-btn down" aria-label={`Remove ${s}`} onClick={() => onRemove(s)}>

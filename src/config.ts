@@ -19,3 +19,6 @@ export const PROXY_URL: string = import.meta.env.VITE_PROXY_URL ?? '';
 
 export const DISCLAIMER = 'Personal research tool. Not financial advice. Data may be delayed, incomplete or wrong.';
 export const MODEL_LABEL = 'Model estimate. Not financial advice.';
+
+/** Every time shown in the app is in this zone. Market logic (sessions, trading days) stays on New York time. */
+export const DISPLAY_TZ = 'America/Los_Angeles';

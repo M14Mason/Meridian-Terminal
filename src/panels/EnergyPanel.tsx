@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Lines } from '../charts/Lines';
 import { bySeries, eia, type EiaRow } from '../data/adapters/eia';
 import { useData } from '../data/useData';
-import { dir, fmt, fmtBig } from '../lib/format';
+import { dir, fmt, fmtBig, dateTimeLocal, tzLabel } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 
@@ -116,7 +116,7 @@ function Grid() {
       <Lines series={chart} height={200} />
       {latestHour && (
         <table className="grid-table">
-          <thead><tr><th>Generation mix, hour {latestHour} UTC</th><th className="num">Share</th><th className="num">GW</th></tr></thead>
+          <thead><tr><th>Generation mix, hour of {dateTimeLocal(Date.parse(`${latestHour}:00Z`))} {tzLabel()}</th><th className="num">Share</th><th className="num">GW</th></tr></thead>
           <tbody>{shares.map((s) => <tr key={s.f}><td>{s.f}</td><td className="num">{fmt(s.share * 100, 1)}%</td><td className="num">{fmt(s.mw / 1000, 1)}</td></tr>)}</tbody>
         </table>
       )}

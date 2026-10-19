@@ -2,6 +2,7 @@ import { spendSpike } from '../../shared/ai';
 import type { UsageRow } from '../../shared/api-types';
 import { api } from '../lib/api';
 import { useEffect, useState } from 'react';
+import { timeLocal, tzLabel } from '../lib/format';
 import { useSyncStatus } from '../state/sync';
 
 function useClock() {
@@ -13,7 +14,7 @@ function useClock() {
   return now;
 }
 
-const fmtNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+const fmtNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false });
 
 export function StatusBar() {
   const now = useClock();
@@ -24,7 +25,7 @@ export function StatusBar() {
       <span className={s.error ? 'down' : s.pending ? 'accent' : 'up'} title={s.error ?? undefined}>
         {syncLabel}
       </span>
-      <span title="New York time">NY {fmtNY.format(now)}</span>
+      <span title={`Pacific time (all times in the app). Market (New York) time: ${fmtNY.format(now)}`}>{tzLabel(now.getTime())} {timeLocal(now.getTime())}</span>
     </div>
   );
 }
@@ -42,7 +43,7 @@ export function OfflineBanner() {
     };
   }, []);
   if (online) return null;
-  const at = s.lastSync ? new Date(s.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'never';
+  const at = s.lastSync ? timeLocal(s.lastSync).slice(0, 5) : 'never';
   return (
     <div className="banner banner--warn" role="status">
       OFFLINE, cached at {at}. Edits are saved and will sync when you reconnect.

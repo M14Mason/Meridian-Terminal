@@ -23,8 +23,8 @@ describe('alerts', () => {
   });
   it('applies quiet hours across midnight and cooldowns', () => {
     const s = { ...DEFAULT_SETTINGS, quietStart: 22 * 60, quietEnd: 7 * 60 };
-    expect(inQuietHours(s, Date.parse('2026-10-20T03:00:00Z'))).toBe(true); // 23:00 New York
-    expect(inQuietHours(s, Date.parse('2026-10-20T16:00:00Z'))).toBe(false); // 12:00 New York
+    expect(inQuietHours(s, Date.parse('2026-10-20T06:00:00Z'))).toBe(true); // 23:00 Pacific
+    expect(inQuietHours(s, Date.parse('2026-10-20T19:00:00Z'))).toBe(false); // 12:00 Pacific
     expect(coolingDown(r({}), 0, 60 * 60_000)).toBe(true);
     expect(coolingDown(r({}), 0, 5 * 60 * 60_000)).toBe(false);
   });

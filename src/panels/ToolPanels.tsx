@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Lines } from '../charts/Lines';
 import { bars, multiBars, startFor } from '../data/adapters/alpaca';
 import { useData } from '../data/useData';
-import { dir, downloadCsv, fmt, fmtBig, fmtPct } from '../lib/format';
+import { dir, downloadCsv, fmt, fmtBig, fmtPct, timeLocal } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 import { sync, useCollection } from '../state/sync';
@@ -124,7 +124,7 @@ function Orb({ sym }: { sym: string }) {
           <tbody>
             <tr><td>Session</td><td className="num">{r.today}</td><td>Last</td><td className="num">{fmt(r.last.c)}</td></tr>
             <tr><td>Range high ({mins}m)</td><td className="num up">{fmt(r.hi)}</td><td>Range low</td><td className="num down">{fmt(r.lo)}</td></tr>
-            <tr><td>Breakout up</td><td className="num">{r.up ? new Date(r.up.t).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) : '-'}</td><td>Breakdown</td><td className="num">{r.dn ? new Date(r.dn.t).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }) : '-'}</td></tr>
+            <tr><td>Breakout up</td><td className="num">{r.up ? timeLocal(r.up.t).slice(0, 5) : '-'}</td><td>Breakdown</td><td className="num">{r.dn ? timeLocal(r.dn.t).slice(0, 5) : '-'}</td></tr>
             <tr><td>Volume pace vs {r.n}-day avg</td><td className={`num ${r.pace && r.pace > 1 ? 'up' : ''}`}>{r.pace ? `${fmt(r.pace, 2)}x` : '-'}</td><td>Position in range</td><td className={`num ${r.last.c > r.hi ? 'up' : r.last.c < r.lo ? 'down' : ''}`}>{r.last.c > r.hi ? 'ABOVE' : r.last.c < r.lo ? 'BELOW' : 'INSIDE'}</td></tr>
           </tbody>
         </table>

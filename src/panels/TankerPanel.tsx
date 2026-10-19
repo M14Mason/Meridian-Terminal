@@ -9,7 +9,7 @@ import { category, CHOKEPOINTS, type Category, type Packed } from '../../shared/
 import { connectAis, flagOf, portwatch, snapshot, type AisFrame, type StaticInfo, type ViewMsg } from '../data/adapters/ais';
 import { latest } from '../data/adapters/fred';
 import { useData } from '../data/useData';
-import { fmt, timeNY } from '../lib/format';
+import { fmt, timeLocal, tzLabel } from '../lib/format';
 import { usePanelMeta } from '../shell/panelMeta';
 import type { PanelProps } from '../shell/types';
 import { lowPower, webgl2Available } from '../three/gl';
@@ -233,7 +233,7 @@ export default function TankerPanel(_: PanelProps) {
   }, [pw.data]);
 
   const why = frame?.status === 'no-key' ? 'relay has no AISStream key' : frame?.status === 'error' ? 'relay error' : conn !== 'open' ? 'relay unreachable' : 'relay starting';
-  const statusText = live ? 'LIVE' : snap ? `SNAPSHOT ${timeNY(snap.at).slice(0, 5)} NY, NOT LIVE (${why})` : frame?.status === 'no-key' ? 'NO AISSTREAM KEY' : conn === 'connecting' || frame?.status === 'connecting' ? 'CONNECTING' : 'OFFLINE';
+  const statusText = live ? 'LIVE' : snap ? `SNAPSHOT ${timeLocal(snap.at).slice(0, 5)} ${tzLabel()}, NOT LIVE (${why})` : frame?.status === 'no-key' ? 'NO AISSTREAM KEY' : conn === 'connecting' || frame?.status === 'connecting' ? 'CONNECTING' : 'OFFLINE';
 
   return (
     <div className="panel-fill tnkr">
@@ -274,7 +274,7 @@ export default function TankerPanel(_: PanelProps) {
                 <dt>Speed</dt><dd>{sel.p[3] != null ? `${sel.p[3]} kn` : '-'}</dd>
                 <dt>Course / heading</dt><dd>{sel.p[4] ?? '-'} / {sel.p[5] ?? '-'}</dd>
                 <dt>Draught</dt><dd>{sel.s?.dr ? `${sel.s.dr} m` : '-'}</dd>
-                <dt>Last seen</dt><dd>{timeNY(sel.p[7] * 1000)} NY</dd>
+                <dt>Last seen</dt><dd>{timeLocal(sel.p[7] * 1000)} {tzLabel()}</dd>
               </dl>
             </section>
           ) : null}

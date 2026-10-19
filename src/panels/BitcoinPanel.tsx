@@ -6,7 +6,7 @@ import { news as alpacaNews } from '../data/adapters/alpaca';
 import { btcHistory, btcPrice } from '../data/adapters/coingecko';
 import { search as gdelt } from '../data/adapters/gdelt';
 import { useData } from '../data/useData';
-import { dir, fmt, fmtBig, fmtPct, timeNY } from '../lib/format';
+import { dir, fmt, fmtBig, fmtPct, timeLocal } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 
@@ -53,7 +53,7 @@ export default function BitcoinPanel(_: PanelProps) {
         <tbody>
           {(news.data ?? []).slice(0, 25).map((n) => (
             <tr key={n.id}>
-              <td className="muted">{timeNY(n.publishedAt).slice(0, 5)}</td>
+              <td className="muted">{timeLocal(n.publishedAt).slice(0, 5)}</td>
               <td className="news__head"><a href={n.url} target="_blank" rel="noreferrer noopener">{n.headline}</a><div className="muted" style={{ fontSize: 10 }}>{n.source} via {n.provider}</div></td>
             </tr>
           ))}

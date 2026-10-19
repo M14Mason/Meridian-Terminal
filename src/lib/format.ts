@@ -1,4 +1,5 @@
 // Number formatting for dense tables. Tabular figures come from CSS.
+import { DISPLAY_TZ } from '../config';
 export const fmt = (v: number | null | undefined, d = 2) => (v == null || !Number.isFinite(v) ? '-' : v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }));
 export const fmtPct = (v: number | null | undefined, d = 2) => (v == null || !Number.isFinite(v) ? '-' : `${v > 0 ? '+' : ''}${v.toFixed(d)}%`);
 export const fmtChg = (v: number | null | undefined, d = 2) => (v == null || !Number.isFinite(v) ? '-' : `${v > 0 ? '+' : ''}${v.toFixed(d)}`);
@@ -12,8 +13,14 @@ export function fmtBig(v: number | null | undefined): string {
   return v.toFixed(0);
 }
 export const dir = (v: number | null | undefined) => (v == null || v === 0 || !Number.isFinite(v) ? '' : v > 0 ? 'up' : 'down');
-export const timeNY = (ms: number | null) =>
-  ms ? new Date(ms).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-';
+const fmtTime = new Intl.DateTimeFormat('en-US', { timeZone: DISPLAY_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+const fmtDateTime = new Intl.DateTimeFormat('en-US', { timeZone: DISPLAY_TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+/** HH:MM:SS in the display zone (Pacific). */
+export const timeLocal = (ms: number | null) => (ms ? fmtTime.format(ms) : '-');
+/** "Oct 19, 2:05 PM" in the display zone. */
+export const dateTimeLocal = (ms: number | null) => (ms ? fmtDateTime.format(ms) : '-');
+/** Short zone name right now, "PDT" or "PST". */
+export const tzLabel = (ms = Date.now()) => new Intl.DateTimeFormat('en-US', { timeZone: DISPLAY_TZ, timeZoneName: 'short' }).formatToParts(ms).find((p) => p.type === 'timeZoneName')?.value ?? 'PT';
 export const dateISO = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 /** CSV export (core terminal feature). Quotes every cell. */
