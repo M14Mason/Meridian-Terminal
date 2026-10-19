@@ -26,7 +26,7 @@ const DEFAULTS: TabState = {
   markets: { code: 'BQ' },
   charts: { code: 'GP', security: 'SPY' },
   news: { code: 'N' },
-  maps: { code: 'HEAT' },
+  maps: { code: 'TNKR' },
   portfolio: { code: 'PORT' },
   more: { code: 'HELP' },
 };

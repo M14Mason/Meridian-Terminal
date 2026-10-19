@@ -1,0 +1,28 @@
+name: AIS snapshot fallback
+# Off by default. Enable only if the live relay cannot run on the free plan (14.3):
+# set repo variable AIS_SNAPSHOT_ENABLED=true and add secret AISSTREAM_API_KEY.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    if: vars.AIS_SNAPSHOT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Collect and upload snapshot
+        run: node scripts/ais-snapshot.mjs
+        env:
+          AISSTREAM_API_KEY: ${{ secrets.AISSTREAM_API_KEY }}
+          MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
+          PROXY_URL: ${{ vars.PROXY_URL }}
+          LISTEN_SECONDS: '240'

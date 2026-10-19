@@ -197,3 +197,12 @@
 .legend { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--text-dim); }
 .legend span.sw { display: inline-block; width: 14px; height: 10px; }
 :root[data-lowpower='1'] .heat td.cell { transition: none; }
+
+/* Tanker map (M6) */
+.tnkr__body { display: flex; gap: 6px; min-height: 300px; }
+.tnkr__map { flex: 1; min-width: 0; min-height: 300px; position: relative; }
+.tnkr__side { width: 300px; flex: none; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.tnkr__side h4 { margin: 4px 0; font-size: 12px; }
+@media (max-width: 767px) { .tnkr__body { flex-direction: column; } .tnkr__map { min-height: 360px; } .tnkr__side { width: auto; } }
+.maplibregl-ctrl-attrib { background: rgba(0,0,0,0.6) !important; color: var(--text-dim) !important; font-size: 10px; }
+.maplibregl-ctrl-attrib a { color: var(--text-dim) !important; }
