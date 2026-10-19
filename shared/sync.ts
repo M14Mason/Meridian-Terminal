@@ -1,6 +1,6 @@
 // Sync model (BUILD_PROMPT 7). Per-item records, last write wins, tombstones for deletes.
 
-export const COLLECTIONS = ['watchlists', 'screens', 'alerts', 'notes', 'journal', 'drawings', 'settings', 'strategies'] as const;
+export const COLLECTIONS = ['watchlists', 'screens', 'alerts', 'notes', 'journal', 'drawings', 'settings', 'strategies', 'predictions'] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 
 export const MAX_RECORD_BYTES = 32 * 1024;

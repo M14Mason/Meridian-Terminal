@@ -100,7 +100,7 @@ export const FEATURES: Record<Feature, FeatureSpec> = {
   },
   brief: { model: MODELS.haiku, maxTokens: 900, version: 'brief-1', cacheTtl: 12 * 3600, maxInput: 12000, schema: { t: 'object', props: { headline: str(200), bullets: strs(8), watch: strs(5) } } },
   critic: { model: MODELS.sonnet, maxTokens: 1200, version: 'critic-1', cacheTtl: 24 * 3600, maxInput: 12000, schema: { t: 'object', props: { strengths: strs(5), mistakes: strs(6), patterns: strs(5), rules: strs(5) } } },
-  filing: { model: MODELS.haiku, maxTokens: 900, version: 'filing-1', cacheTtl: 30 * 86400, maxInput: 14000, schema: { t: 'object', props: { summary: str(800), changes: strs(8), risks: strs(6), tone: { t: 'string', enum: ['more cautious', 'similar', 'more confident', 'unclear'] } } } },
+  filing: { model: MODELS.haiku, maxTokens: 900, version: 'filing-1', cacheTtl: 30 * 86400, maxInput: 30000, schema: { t: 'object', props: { summary: str(800), changes: strs(8), risks: strs(6), tone: { t: 'string', enum: ['more cautious', 'similar', 'more confident', 'unclear'] } } } },
   cmp: {
     model: MODELS.sonnet, maxTokens: 3000, version: 'cmp-1', cacheTtl: 3600, maxInput: 14000,
     schema: { t: 'object', props: { positions: { t: 'array', max: 30, of: { t: 'object', props: { t: str(10), w: { t: 'number', min: 0.5, max: 15 }, thesis: str(300) } } }, notes: str(800) } },

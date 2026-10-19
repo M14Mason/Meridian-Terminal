@@ -63,6 +63,9 @@ M8 AI layer (starting 2026-10-19)
 * **Request budget warning:** 100,000 Worker requests per day sounds large, but 10 panels polling every 10 seconds for 24 hours is 86,400. M3 must batch quotes into one request and slow polling when the tab is hidden.
 * **Robinhood read allowlist** uses tool names observed in the official Robinhood MCP tool list on 2026-10-18 plus a second mutating-verb filter. Re-verify at M10.
 * **CSP:** production `style-src 'self'` with no inline scripts or styles; the dev server alone allows inline styles because Vite injects them.
+* **Supply chain plan (owner decision 2026-10-19):** Claude Code extracts the top 1,000 companies by market cap itself during M9 sessions (no API cost), reading keyword-filtered 10-K paragraphs (customers, suppliers, manufacturing, % of revenue) and committing public-safe JSON derived from SEC filings, with a checkpoint file so work resumes across usage limits (estimate 50 to 150 companies per session). All other companies: on-demand extraction with claude-sonnet-5-5 through the proxy when SPLC opens, cost shown before running, cached. No bulk API run unless the owner asks later (estimates: Haiku batch ~$4, Sonnet batch ~$80, Opus batch ~$155 filtered, ~$975 unfiltered; pricing verified 2026-10-19).
+* **AI pricing verified 2026-10-19** (platform.claude.com pricing page): Haiku 5.5 $0.10/$0.50 per MTok (prompts up to 100k; $0.50/$2.50 above), Sonnet 5.5 $2/$10, Opus 5.5 $4/$20, Batch 50% off. Stored in shared/ai.ts PRICES.
+* **API Ninjas earnings transcripts are premium only** (checked 2026-10-19): earnings call summaries (110) use the 8-K item 2.02 press release (exhibit 99.1) instead. The API Ninjas key is not used.
 * **Repo name `Meridian-Terminal`, base path `/Meridian-Terminal/`.** Owner created it.
 
 ## Known bugs

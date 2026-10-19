@@ -167,10 +167,10 @@ export const FUNCTIONS: FunctionDef[] = [
 
   // ----- M8 AI -----
   F('ASK', 'Ask (AI search)', 'Plain-English search and screener. Shows the parsed query first.', { milestone: 'M8', category: 'AI', size: { w: 30, h: 22 }, load: () => import('../panels/AskPanel') }),
-  F('PRED', 'Predictions', 'Model ranges and probabilities with inputs and track record.', { needsSecurity: true, milestone: 'M8', category: 'AI' }),
-  F('VAL', 'Valuation', 'Code DCF and multiples next to the AI opinion.', { needsSecurity: true, milestone: 'M8', category: 'AI' }),
-  F('SCOR', 'Scoreboard', 'Prediction hit rate, Brier score and calibration.', { milestone: 'M8', category: 'AI' }),
-  F('BRIF', 'Morning brief', 'Daily AI brief.', { aliases: ['BRIEF'], milestone: 'M8', category: 'AI' }),
+  F('PRED', 'Predictions', 'Model ranges and probabilities with inputs and track record.', { needsSecurity: true, milestone: 'M8', category: 'AI', size: { w: 30, h: 34 }, load: () => import('../panels/AiPanels') }),
+  F('VAL', 'Valuation', 'Code DCF and multiples next to the AI opinion.', { needsSecurity: true, milestone: 'M8', category: 'AI', size: { w: 40, h: 34 }, load: () => import('../panels/AiPanels') }),
+  F('SCOR', 'Scoreboard', 'Prediction hit rate, Brier score and calibration.', { milestone: 'M8', category: 'AI', size: { w: 34, h: 28 }, load: () => import('../panels/AiPanels') }),
+  F('BRIF', 'Morning brief', 'Daily AI brief.', { aliases: ['BRIEF'], milestone: 'M8', category: 'AI', size: { w: 30, h: 30 }, load: () => import('../panels/AiPanels') }),
 
   // ----- M9 to M11 -----
   F('SPLC', 'Supply chain', '3D supplier and customer graph from SEC filings.', { needsSecurity: true, milestone: 'M9', category: 'Maps' }),

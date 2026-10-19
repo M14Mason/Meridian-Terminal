@@ -200,7 +200,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
 
   // AI layer (16): POST {feature, input, fresh?}. Prompts and models are fixed server side.
   if (path === '/api/ai' && method === 'POST') {
-    const body = await readJson(req, 20 * 1024);
+    const body = await readJson(req, 48 * 1024);
     const resolve = async (n: string) => {
       const r = await vault.resolveKey(n);
       return r.ok ? r.data : null;
