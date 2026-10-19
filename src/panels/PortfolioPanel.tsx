@@ -193,7 +193,7 @@ export default function PortfolioPanel({ run }: PanelProps) {
           <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div style={{ flex: '1 1 240px' }}>
               <H4>SECTOR EXPOSURE</H4>
-              <table className="grid-table"><tbody>{sectors.map(([k, v]) => <tr key={k}><td>{k}</td><td className="num">{fmt(v * 100, 1)}%</td><td style={{ width: 90 }}><div style={{ height: 8, width: `${v * 100}%`, background: 'var(--accent, #fb8b1e)' }} /></td></tr>)}</tbody></table>
+              <table className="grid-table"><tbody>{sectors.map(([k, v]) => <tr key={k}><td>{k}</td><td className="num">{fmt(v * 100, 1)}%</td><td style={{ width: 90 }}><div style={{ height: 8, width: `${v * 100}%`, background: 'var(--accent, #f2a446)' }} /></td></tr>)}</tbody></table>
             </div>
             <div style={{ flex: '1 1 240px' }}>
               <H4>RISK</H4>

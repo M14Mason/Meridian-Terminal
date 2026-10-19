@@ -54,7 +54,7 @@ function Surface({ curve }: { curve: Curve }) {
       const pos = geo.attributes.position!;
       const colors = new Float32Array(pos.count * 3);
       const lo = new THREE.Color('#0068ff');
-      const hi = new THREE.Color('#fb8b1e');
+      const hi = new THREE.Color('#f2a446');
       for (let iz = 0; iz < nz; iz++) {
         for (let ix = 0; ix < nx; ix++) {
           const k = iz * nx + ix;

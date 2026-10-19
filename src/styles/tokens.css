@@ -21,10 +21,10 @@
      no official assets): deep amber labels, white data, saturated green/red, navy header bands. */
   --bg: #000000;
   --panel: #000000;
-  --text: #ffa028;        /* amber: labels, headers, codes */
+  --text: #f2a446;        /* amber: labels, headers, codes (sampled from the owner's reference screenshot) */
   --value: #ffffff;       /* data values */
   --text-dim: #a0a0a0;
-  --accent: #ffa028;
+  --accent: #f2a446;
   --up: #1ee05a;          /* saturated green */
   --down: #ff3a3a;        /* saturated red */
   --link: #5aa0ff;
@@ -33,13 +33,13 @@
   --radius: 0px;
   --focus: #ffd500;
   --head-bg: #10203f;     /* navy header band */
-  --select-bg: #ffa028;
+  --select-bg: #f2a446;
   --select-fg: #000000;
   --btn-bg: #2a2a2a;
   --btn-fg: #ffffff;
   --input-bg: #000000;
   --go-bg: #1ee05a;
-  --action-bg: #8c1010;   /* dark red action buttons */
+  --action-bg: #7c1d23;   /* dark red action buttons and tabs (sampled) */
   --th-bg: #1a1a1a;
 }
 :root[data-theme='dark'] {

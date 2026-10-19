@@ -87,8 +87,8 @@ export function SupplyMap({ root, places, links, onPick }: { root: string; place
     const arcs: unknown[] = [];
     const pts: unknown[] = [];
     if (home) {
-      pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [home[1], home[0]] }, properties: { id: root, kind: 'hq', label: root, color: '#fb8b1e', r: 8 } });
-      for (const f of places[root]?.f ?? []) pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [f[1], f[0]] }, properties: { id: root, kind: 'fac', label: f[2], color: '#fb8b1e', r: 3.5 } });
+      pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [home[1], home[0]] }, properties: { id: root, kind: 'hq', label: root, color: '#f2a446', r: 8 } });
+      for (const f of places[root]?.f ?? []) pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [f[1], f[0]] }, properties: { id: root, kind: 'fac', label: f[2], color: '#f2a446', r: 3.5 } });
     }
     for (const l of links) {
       const p = places[l.id]?.hq;
@@ -111,7 +111,7 @@ export function SupplyMap({ root, places, links, onPick }: { root: string; place
     <div>
       <div ref={box} style={{ height: 420, minHeight: 280 }} role="img" aria-label="Globe of the company and its counterparties. The table lists the same data." />
       <p className="muted">
-        <span style={{ color: '#fb8b1e' }}>●</span> {root} HQ and facilities <span style={{ color: COLOR.supplier }}>●</span> supplier <span style={{ color: COLOR.customer }}>●</span> customer <span style={{ color: COLOR.partner }}>●</span> partner <span style={{ color: '#ff433d' }}>●</span> critical.{' '}
+        <span style={{ color: '#f2a446' }}>●</span> {root} HQ and facilities <span style={{ color: COLOR.supplier }}>●</span> supplier <span style={{ color: COLOR.customer }}>●</span> customer <span style={{ color: COLOR.partner }}>●</span> partner <span style={{ color: '#ff433d' }}>●</span> critical.{' '}
         {!home && `${root} has no geocoded HQ yet. `}{missing > 0 && `${missing} counterparties are not on the map (unnamed, not extracted, or not geocoded).`}
       </p>
     </div>

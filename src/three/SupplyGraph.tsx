@@ -7,7 +7,7 @@ import { acquireContext, disposeTree, fpsGovernor, lowPower, releaseContext, web
 export interface GNode { id: string; role: 'root' | 'supplier' | 'customer' | 'partner' | 'other'; size: number; impact?: number }
 export interface GLink { from: string; to: string; w: number }
 
-const COLORS: Record<GNode['role'], string> = { root: '#fb8b1e', supplier: '#4aa3ff', customer: '#4af6c3', partner: '#b07cff', other: '#8a8a8a' };
+const COLORS: Record<GNode['role'], string> = { root: '#f2a446', supplier: '#4aa3ff', customer: '#4af6c3', partner: '#b07cff', other: '#8a8a8a' };
 
 export function SupplyGraph({ nodes, links, selected, onSelect, height = 380 }: { nodes: GNode[]; links: GLink[]; selected: string | null; onSelect: (id: string) => void; height?: number }) {
   const box = useRef<HTMLDivElement>(null);
@@ -63,7 +63,7 @@ export function SupplyGraph({ nodes, links, selected, onSelect, height = 380 }: 
           cv.width = 256; cv.height = 40;
           const g = cv.getContext('2d')!;
           g.font = '22px "IBM Plex Mono", monospace';
-          g.fillStyle = n.role === 'root' ? '#fb8b1e' : '#e8e8e8';
+          g.fillStyle = n.role === 'root' ? '#f2a446' : '#e8e8e8';
           g.fillText(text, 4, 28);
           const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
           sp.scale.set(2.2, 0.34, 1);
@@ -84,7 +84,7 @@ export function SupplyGraph({ nodes, links, selected, onSelect, height = 380 }: 
       const pg = new THREE.BufferGeometry();
       const pp = new Float32Array(flows.length * 3);
       pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
-      const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xfb8b1e, size: 0.07 }));
+      const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xf2a446, size: 0.07 }));
       scene.add(pts);
 
       // Selection and camera fly.

@@ -59,7 +59,7 @@ export function SupplyChart({ center, suppliers, customers, partners, peers, sel
       <div ref={box} style={{ width: '100%' }}>
         <svg width={w} height={h2} role="img" aria-label={`Supply chain of ${center.name}: ${suppliers.length} suppliers, ${customers.length} customers. The table lists the same data.`} style={{ display: 'block', background: '#000' }}>
           <g transform="translate(4,4)">
-            <rect width={w - 8} height={ch0} fill="#a61d1d" stroke="#ffffff" />
+            <rect width={w - 8} height={ch0} fill="#ac2217" stroke="#ffffff" />
             <text x={6} y={18} fill="#fff" fontSize={13} fontWeight={700}>{center.name.length > 34 ? `${center.name.slice(0, 33)}…` : center.name}</text>
             <text x={6} y={33} fill="#ffd27a" fontSize={11}>{center.ticker} US</text>
             {center.lines.map((l, i) => <text key={i} x={6} y={48 + i * 13} fill="#f0f0f0" fontSize={10}>{l}</text>)}
@@ -112,7 +112,7 @@ export function SupplyChart({ center, suppliers, customers, partners, peers, sel
 
         {/* Center company */}
         <g transform={`translate(${cx - cw / 2},${midY - ch / 2})`}>
-          <rect width={cw} height={ch} fill="#a61d1d" stroke="#ffffff" strokeWidth={1} />
+          <rect width={cw} height={ch} fill="#ac2217" stroke="#ffffff" strokeWidth={1} />
           <text x={6} y={18} fill="#ffffff" fontSize={13} fontWeight={700}>{center.name.length > 26 ? `${center.name.slice(0, 25)}…` : center.name}</text>
           <text x={6} y={34} fill="#ffd27a" fontSize={11}>{center.ticker} US</text>
           {center.lines.map((l, i) => <text key={i} x={6} y={50 + i * 13} fill="#f0f0f0" fontSize={10}>{l}</text>)}

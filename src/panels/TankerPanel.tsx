@@ -16,7 +16,7 @@ import { lowPower, webgl2Available } from '../three/gl';
 type ViewKind = ViewMsg['view'];
 interface Ship { p: Packed; s?: StaticInfo; trail: [number, number][] }
 
-const COLORS: Record<Category, string> = { tanker: '#fb8b1e', lng_lpg: '#4af6c3', cargo: '#4d94ff', other: '#8c8c8c' };
+const COLORS: Record<Category, string> = { tanker: '#f2a446', lng_lpg: '#4af6c3', cargo: '#4d94ff', other: '#8c8c8c' };
 const LABELS: Record<Category, string> = { tanker: 'Tankers (AIS 80-89)', lng_lpg: 'LNG/LPG (name heuristic)', cargo: 'Cargo (AIS 70-79)', other: 'Other' };
 
 function arrowImage(): ImageData {
@@ -152,8 +152,8 @@ export default function TankerPanel(_: PanelProps) {
             })),
           },
         });
-        m.addLayer({ id: 'zones', type: 'fill', source: 'zones', paint: { 'fill-color': '#fb8b1e', 'fill-opacity': 0.18 } });
-        m.addLayer({ id: 'zones-line', type: 'line', source: 'zones', paint: { 'line-color': '#fb8b1e', 'line-width': 1.2 } });
+        m.addLayer({ id: 'zones', type: 'fill', source: 'zones', paint: { 'fill-color': '#f2a446', 'fill-opacity': 0.18 } });
+        m.addLayer({ id: 'zones-line', type: 'line', source: 'zones', paint: { 'line-color': '#f2a446', 'line-width': 1.2 } });
         m.addSource('trails', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         m.addLayer({ id: 'trails', type: 'line', source: 'trails', paint: { 'line-color': ['get', 'color'], 'line-width': 1, 'line-opacity': 0.5 } });
         m.addSource('ships', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
