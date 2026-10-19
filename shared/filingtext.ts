@@ -12,7 +12,7 @@ export function htmlToText(html: string): string {
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCharCode(parseInt(n, 16)))
     .replace(/&([a-z]+);/gi, (m, n: string) => ENT[n.toLowerCase()] ?? m)
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t\u00a0]+/g, ' ')
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
