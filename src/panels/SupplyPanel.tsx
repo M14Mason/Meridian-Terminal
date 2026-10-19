@@ -7,6 +7,7 @@ import { disrupt, edges as shardEdges, neighborhood, type Edge, type Rel, type S
 import { quotes } from '../data/adapters/alpaca';
 import * as fh from '../data/adapters/finnhub';
 import { prepareOnDemand, runOnDemand, staticEdges, staticShard } from '../data/adapters/supply';
+import { profile } from '../data/adapters/sec';
 import { useData } from '../data/useData';
 import { fmt } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
@@ -33,7 +34,15 @@ export default function SupplyPanel({ security, run }: PanelProps) {
   const mine = useCollection<Shard>('supply');
   const root = useData(`splc:shard:${sym}`, async () => ({ data: await staticShard(sym), fetchedAt: Date.now(), fromCache: false }), { source: 'SEC filings' });
   const peersSt = useData(`splc:peers:${sym}`, () => fh.peers(sym), { source: 'Finnhub peers' });
-  const shard = root.data ?? mine.find((x) => x.id === sym)?.value ?? null;
+  const odShard = mine.find((x) => x.id === sym)?.value ?? null;
+  // Prefer whichever extraction read the newer filing (an on-demand refresh beats an older static shard).
+  const shard = root.data && odShard ? (odShard.filing.date > root.data.filing.date ? odShard : root.data) : root.data ?? odShard;
+  const latest = useData(shard ? `splc:latest:${sym}` : null, async () => {
+    const p = await profile(sym);
+    const f = p.data.filings.find((x) => x.form === '10-K' || x.form === '20-F' || x.form === '40-F');
+    return { data: f ? { form: f.form, date: f.filed } : null, fetchedAt: p.fetchedAt, fromCache: false };
+  }, { source: 'SEC EDGAR' });
+  const stale = shard && latest.data && latest.data.date > shard.filing.date ? latest.data : null;
 
   const all = useMemo<Edge[]>(() => {
     const extra = shardEdges(mine.map((x) => x.value).filter((s) => !base.data?.edges.some((e) => e.via === s.t)));
@@ -124,6 +133,12 @@ export default function SupplyPanel({ security, run }: PanelProps) {
         <button aria-pressed={shock} onClick={() => setShock((s) => !s)}>{shock ? 'CLEAR DISRUPTION' : `DISRUPT ${sym}`}</button>
       </div>
       <DataStatus state={base} />
+      {stale && (
+        <p>
+          <span className="badge">NEWER FILING</span> {sym} filed a {stale.form} on {stale.date}, after the {shard!.filing.date} filing this map was built from.{' '}
+          <button disabled={Boolean(od.busy)} onClick={() => void extract()}>{od.busy ? 'WORKING...' : 'REFRESH WITH SONNET'}</button>
+        </p>
+      )}
       {!covered && (
         <p>
           <span className="badge">NOT EXTRACTED</span> {sym} is outside the extracted set{hood.edges.length ? `; ${hood.edges.length} links come from other companies' filings` : ''}.{' '}

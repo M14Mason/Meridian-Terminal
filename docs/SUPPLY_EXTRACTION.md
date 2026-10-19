@@ -27,5 +27,6 @@ Owner decision 2026-10-19 (revised the same day from 1,000 to 500): Claude Code 
 * `conf`: 0.9 to 0.95 named with a share or an explicit contract, 0.8 to 0.85 named, 0.6 to 0.7 unnamed or vague.
 * `ev`: an exact quote from the text, fewer than 15 words. "..." may join two parts of one sentence.
 * `facilities`: from the Properties section only. Leave lat and lon out; geocoding is a separate step.
+* Skip universe rows marked `skip` (commodity and crypto trusts, SIC 6221): they are funds, not operating companies. Do not save shards for them. REITs and banks are kept.
 * No em dashes anywhere.
 * Do not commit; the main session commits.
