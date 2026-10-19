@@ -4,7 +4,7 @@ Last updated: 2026-10-19 (after M7)
 
 ## Current milestone
 
-M8 AI layer (starting 2026-10-19)
+M9 Supply chain (starting 2026-10-19)
 
 ## Completed milestones
 
@@ -17,12 +17,14 @@ M8 AI layer (starting 2026-10-19)
 | M4 News and filings | 2629ed4 | News with latency badges, filings, FA (XBRL), insiders, 13F, calendars, 8-K. |
 | M5 Macro and heatmaps | 143a4e8 | Macro heatmaps, yield curve, FX, Bitcoin, crypto and sector heatmaps. |
 | M6 Tanker map | c033b95 | AIS relay DO, ticket auth, MapLibre map, chokepoints, PortWatch transits. |
+| M8 AI layer | 184f13b (parts 1 to 3, 1e31273..184f13b) | Proxy /api/ai (versioned prompts, schema validation + 1 retry, edge cache by input hash, in-flight dedupe, usage metered per feature), Explain on every panel, ASK, VAL, PRED (logged), SCOR, BRIF, CMP (cost confirm before each rebalance), FDIF, ECS (PARTIAL), journal critic, spend spike banner. Verified: unit tests with mocked Anthropic; UI and no-key error path in a browser. NOT verified live: real Claude replies (key is only in the production proxy). |
 | M7 Analytics | 76727e7 (parts 1 to 13, b932e36..76727e7) | Launchpad, presets, favorites, GURU, CLUS, backtester and strategy library, FRED dashboards, EIA energy, quant and risk, options (LIMITED), equity tools, filings intelligence, signals, EQS, MODEL, RVOL, BRDH, CIDX, ORB, JRNL, ETFH, TMAP, SOCL, FTD, BORR, CONG, SQZ, SAT, FRT, CDS, PARTIAL PAT/ESG/TICK. Data jobs: insiders, ftd, borrow, congress (GitHub Actions to proxy cache). |
 
 ## In progress
 
-* **M8 AI layer** per BUILD_PROMPT section 16 and docs/ADDITIONS.md (CMP). Order: proxy `/api/ai/*` endpoint (Anthropic key from vault, per-feature max tokens, input-hash cache, usage metering per feature, schema validation with one retry, spike warning) -> explain button -> ASK -> VAL -> PRED + prediction log -> SCOR + scoring job -> BRIF -> journal critic -> filings summaries -> CMP (cost shown before each rebalance).
-* Chart-line alerts (idea 3) are built with M11.
+* **M9 Supply chain** per section 15 and the owner's plan (Decisions): universe and schema, keyword filter for 10-K text, Claude Code extracts the top 1,000 by market cap in batches with a checkpoint file (`data/supply/progress.json`), on-demand Sonnet extraction for everything else, 3D graph and globe, disruption simulator.
+* M8 leftovers: spend spike EMAIL (with M11 email), earnings-beat and macro-release predictions (docs/OMITTED.md), live prompt eval set (needs the key; run once the owner opens VAL/PRED/ASK).
+* Chart-line alerts (idea 3) with M11.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
@@ -30,6 +32,7 @@ M8 AI layer (starting 2026-10-19)
 * DONE: first device paired, all keys saved in SET > Keys (owner, 2026-10-19).
 * Owner: run GitHub > Actions > Data jobs > Run workflow once to fill FTD, BORR and CONG.
 * Owner: open SAT once to confirm the Copernicus keys work (untested; keys live only in the proxy).
+* Owner: try one AI feature (the ? button on any panel) to confirm the Anthropic key works in production.
 
 ## Unverified items still open (section 24)
 

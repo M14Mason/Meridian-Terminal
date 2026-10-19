@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { animateIn } from '../lib/motion';
 import { COLS, ROW_PX, type Action, type FrameState, type PanelState } from './layout';
 import { PanelHost } from './PanelHost';
@@ -26,7 +26,8 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
   const drag = useRef<Drag | null>(null);
   const tabDrag = useRef<{ id: string; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState(false);
-  const [meta, setMeta] = useState<PanelMeta | null>(null);
+  // Meta is tagged with the panel it came from, so a replaced panel never shows the old panel's data age.
+  const [metaState, setMetaState] = useState<{ key: string; meta: PanelMeta | null }>({ key: '', meta: null });
   const [explain, setExplain] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const active = panels[frame.active];
@@ -37,8 +38,12 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
     if (focused) ref.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [focused]);
 
+  const panelKey = active ? `${active.id}:${active.code}:${active.security ?? ''}` : '';
+  const onMeta = useCallback((m: PanelMeta | null) => setMetaState({ key: panelKey, meta: m }), [panelKey]);
+
   if (!active) return null;
   const fn = findFunction(active.code);
+  const meta = metaState.key === panelKey ? metaState.meta : null;
 
   function start(kind: Drag['kind'], e: RPointerEvent) {
     if (frame.locked || frame.maximized || e.button !== 0) return;
@@ -169,7 +174,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
       {!frame.minimized && (
         <div className="frame__body" ref={bodyRef}>
           {explain && <Explain key={active.id} getBody={() => bodyRef.current} title={fn?.title ?? active.code} description={fn?.description ?? ''} code={active.code} security={active.security} meta={meta} onClose={() => setExplain(false)} />}
-          <PanelHost onMeta={setMeta} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
+          <PanelHost onMeta={onMeta} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
         </div>
       )}
       {!frame.minimized && !frame.maximized && !frame.locked && (
