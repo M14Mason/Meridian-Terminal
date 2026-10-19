@@ -70,7 +70,7 @@ async function prices(): Promise<{ date: string; map: Map<string, { c: number; v
   throw new Error('No end-of-day prices found for the last week');
 }
 
-export async function screenerUniverse(): Promise<Fetched<{ rows: Row[]; priceDate: string; year: number }>> {
+export async function screenerUniverse(): Promise<Fetched<{ rows: Row[]; priceDate: string; year: number; spy: number | null }>> {
   const y = new Date().getUTCFullYear() - 1;
   const [list, cur, prev, shares, px] = await Promise.all([tickers(), yearFunds(y), yearFunds(y - 1), latestShares(), prices()]);
   const pick = <K extends keyof typeof cur>(k: K, cik: number) => cur[k].get(cik) ?? prev[k].get(cik);
@@ -95,5 +95,5 @@ export async function screenerUniverse(): Promise<Fetched<{ rows: Row[]; priceDa
     };
     rows.push(buildRow(t, f, px.map.get(t.ticker) ?? px.map.get(t.ticker.replace('-', '.'))));
   }
-  return { data: { rows, priceDate: px.date, year: y }, fetchedAt: Date.now(), fromCache: false };
+  return { data: { rows, priceDate: px.date, year: y, spy: px.map.get('SPY')?.c ?? null }, fetchedAt: Date.now(), fromCache: false };
 }

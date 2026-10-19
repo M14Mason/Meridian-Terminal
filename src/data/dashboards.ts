@@ -144,4 +144,37 @@ export const DASHBOARDS: Record<string, Dash> = {
       { id: 'VIXCLS', label: 'VIX (equity volatility)', unit: 'idx' },
     ] }],
   },
+  FRT: {
+    title: 'Freight and shipping proxies',
+    groups: [
+      { name: 'Volumes', rows: [
+        { id: 'FRGSHPUSM649NCIS', label: 'Cass Freight Index: shipments YoY', units: 'pc1', unit: '%' },
+        { id: 'TRUCKD11', label: 'Truck tonnage index (SA)', unit: 'idx', dp: 1 },
+        { id: 'RAILFRTCARLOADSD11', label: 'Rail carloads YoY', units: 'pc1', unit: '%' },
+        { id: 'TSIFRGHT', label: 'Transportation Services Index: freight', unit: 'idx', dp: 1 },
+      ] },
+      { name: 'Prices', rows: [
+        { id: 'FRGEXPUSM649NCIS', label: 'Cass Freight Index: expenditures YoY', units: 'pc1', unit: '%' },
+        { id: 'PCU484121484121', label: 'PPI long-distance truckload YoY', units: 'pc1', unit: '%' },
+      ] },
+    ],
+    notes: 'US domestic freight from FRED (Cass, ATA, BTS, BLS). Ocean rates (Baltic Dry, container indices) are licensed and not free; see the tanker map (TANK) and port activity (PORT) for shipping.',
+  },
+  CDS: {
+    title: 'Credit stress (CDS substitute)',
+    groups: [
+      { name: 'Stress indices', rows: [
+        { id: 'STLFSI4', label: 'St. Louis Fed Financial Stress (0 = normal)', unit: 'idx', dp: 2 },
+        { id: 'NFCI', label: 'Chicago Fed financial conditions (negative = loose)', unit: 'idx', dp: 2 },
+        { id: 'ANFCI', label: 'Adjusted NFCI', unit: 'idx', dp: 2 },
+      ] },
+      { name: 'Corporate spreads', rows: [
+        { id: 'BAMLC0A0CM', label: 'Investment grade OAS', unit: 'pp' },
+        { id: 'BAMLH0A0HYM2', label: 'High yield OAS', unit: 'pp' },
+        { id: 'BAMLH0A3HYC', label: 'CCC and below OAS', unit: 'pp' },
+      ] },
+      { name: 'Bank lending', rows: [{ id: 'DRTSCILM', label: 'Banks tightening C&I loan standards (net %)', unit: '%' }] },
+    ],
+    notes: 'Single-name CDS and CDX index prices are not available free. These public series track the same thing: the price of credit risk. Bond spreads are ICE BofA via FRED.',
+  },
 };
