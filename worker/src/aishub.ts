@@ -22,6 +22,14 @@ const PUSH_MS = 3000;
 const IDLE_CLOSE_MS = 60_000;
 const SNAPSHOT_MS = 10 * 60_000;
 
+/** WebSocket frames can be text, ArrayBuffer or Blob depending on the sender; normalize to a string. */
+export async function toText(d: unknown): Promise<string> {
+  if (typeof d === 'string') return d;
+  if (d instanceof ArrayBuffer) return new TextDecoder().decode(d);
+  if (d instanceof Blob) return d.text();
+  return '';
+}
+
 export class AisHub extends DurableObject<Env> {
   private clients = new Set<Client>();
   private vessels = new Map<number, Vessel>();
@@ -35,6 +43,10 @@ export class AisHub extends DurableObject<Env> {
   private status: 'idle' | 'connecting' | 'live' | 'error' | 'no-key' = 'idle';
   private lastError = '';
   private msgCount = 0;
+  /** Diagnostics: last frame that was not a ship message (first 300 chars), last close code and reason. */
+  private lastRaw = '';
+  private lastClose = '';
+  private frames = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private idleSince = 0;
   private lastSnapshot = 0;
@@ -54,6 +66,9 @@ export class AisHub extends DurableObject<Env> {
       void this.ensureUpstream();
       this.ensureTimer();
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname.endsWith('/debug')) {
+      return new Response(JSON.stringify({ status: this.status, lastError: this.lastError, msgs: this.msgCount, frames: this.frames, compression: this.compression, upSince: this.upSince, clients: this.clients.size, vessels: this.vessels.size, lastRaw: this.lastRaw, lastClose: this.lastClose }), { headers: { 'content-type': 'application/json' } });
     }
     if (url.pathname.endsWith('/snapshot')) {
       // Latest stored snapshot, for devices when the live relay is down (14.3).
@@ -104,8 +119,9 @@ export class AisHub extends DurableObject<Env> {
       ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[-90, -180], [90, 180]]], FilterMessageTypes: ['PositionReport', 'ShipStaticData'] }));
       this.upSince = Date.now();
       this.status = 'live';
-      ws.addEventListener('message', (e) => this.onUpstream(e.data));
-      ws.addEventListener('close', () => this.dropUpstream('closed'));
+      // AISStream sends JSON inside binary frames (Blob) since late 2026; read them as text first.
+      ws.addEventListener('message', (e) => void toText(e.data).then((t) => this.onUpstream(t)));
+      ws.addEventListener('close', (e) => { this.lastClose = `${e.code} ${String(e.reason).slice(0, 120)}`; log('ais.closed', { code: e.code, reason: String(e.reason).slice(0, 120) }); this.dropUpstream('closed'); });
       ws.addEventListener('error', () => this.dropUpstream('error'));
       log('ais.connected', {});
     } catch (e) {
@@ -121,19 +137,28 @@ export class AisHub extends DurableObject<Env> {
     log('ais.dropped', { why });
   }
 
-  private onUpstream(data: unknown) {
+  private onUpstream(text: string) {
+    this.frames++;
     let raw: unknown;
     try {
-      raw = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data as ArrayBuffer));
+      raw = JSON.parse(text);
     } catch {
+      // Not JSON: AISStream sends some errors as plain text. Keep it for diagnostics and surface it.
+      this.lastRaw = text.slice(0, 300);
+      this.status = 'error';
+      this.lastError = text.slice(0, 120);
+      log('ais.nonjson', { text: text.slice(0, 120) });
       return;
     }
     const r = raw as { MessageType?: string; Message?: { SubscriptionConfirmation?: { CompressionEnabled?: boolean } }; error?: string };
     if (r.error) {
       this.status = 'error';
-      this.lastError = 'subscription rejected';
+      this.lastError = `AISStream: ${String(r.error).slice(0, 120)}`;
+      this.lastRaw = text.slice(0, 300);
+      log('ais.error', { error: String(r.error).slice(0, 120) });
       return;
     }
+    if (!r.MessageType) this.lastRaw = text.slice(0, 300);
     if (r.MessageType === 'SubscriptionConfirmation') {
       this.compression = Boolean(r.Message?.SubscriptionConfirmation?.CompressionEnabled);
       return;

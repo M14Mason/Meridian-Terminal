@@ -18,6 +18,9 @@ export { AisHub } from './aishub';
 import { hmacHex, timingSafeEqual } from './crypto';
 
 const MAX_BODY = 16 * 1024;
+// Relay instance name. Bump it to start a fresh relay on the new code at once (a running instance keeps its
+// old code while devices stay connected). v2: 2026-10-19, AISStream frames arrive as Blobs.
+const AIS_INSTANCE = 'global-v2';
 // Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
 const SYNC_MAX_BODY = 1024 * 1024;
 
@@ -199,11 +202,60 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     if (!timingSafeEqual(await hmacHex(key, `ais:${dev}:${exp}`), sig)) return json({ error: 'unauthorized' }, 401);
     const exists = await vault.deviceExists(dev);
     if (!exists.ok || !exists.data) return json({ error: 'unauthorized' }, 401);
-    return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ws', req));
+    return env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch(new Request('https://ais/ws', req));
+  }
+  // AISStream probe for the owner's admin token: 10 s on a busy area, reports frame counts and the first control frame.
+  if (path === '/api/ais/probe' && method === 'GET') {
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
+    const k = await vault.resolveKey('AISSTREAM_API_KEY');
+    const key = k.ok ? k.data : null;
+    if (!key) return json({ error: 'no AISStream key' });
+    const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket' } });
+    const ws = resp.webSocket;
+    if (!ws) return json({ error: `upgrade failed ${resp.status}` });
+    ws.accept();
+    const out = { frames: 0, ships: 0, firstFrame: '', close: '', types: {} as Record<string, number>, kinds: [] as string[], hex: '' };
+    await new Promise<void>((resolve) => {
+      const t = setTimeout(resolve, 10_000);
+      ws.addEventListener('message', (e) => {
+        out.frames++;
+        const d = e.data as unknown;
+        const kind = typeof d === 'string' ? 'string' : d instanceof ArrayBuffer ? `arraybuffer:${d.byteLength}` : Object.prototype.toString.call(d);
+        if (out.kinds.length < 5) out.kinds.push(kind);
+        if (d instanceof ArrayBuffer && !out.hex) out.hex = [...new Uint8Array(d.slice(0, 24))].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+        if (d instanceof Blob && !out.hex) { out.hex = 'pending'; void d.arrayBuffer().then((ab) => { out.hex = [...new Uint8Array(ab.slice(0, 24))].map((b) => b.toString(16).padStart(2, '0')).join(' '); out.firstFrame = new TextDecoder().decode(ab.slice(0, 160)); }); }
+        const text = typeof d === 'string' ? d : d instanceof ArrayBuffer ? new TextDecoder().decode(d) : '';
+        if (!out.firstFrame) out.firstFrame = text.slice(0, 200);
+        const mt = /"MessageType":"(\w+)"/.exec(text)?.[1] ?? 'other';
+        out.types[mt] = (out.types[mt] ?? 0) + 1;
+        if (mt === 'PositionReport') out.ships++;
+      });
+      ws.addEventListener('close', (e) => { out.close = `${e.code} ${e.reason}`.slice(0, 160); clearTimeout(t); resolve(); });
+      ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[49.5, -2.5], [51.5, 2.5]]], FilterMessageTypes: ['PositionReport', 'ShipStaticData'] }));
+    });
+    try { ws.close(); } catch { /* closed */ }
+    // Never echo the key: the first frame is AISStream's reply, not our request.
+    return json({ ...out, firstFrame: out.firstFrame.replace(key, '[key]') });
+  }
+  // AI self-test for the owner's admin token: runs one feature on a tiny input (a cent or less) and returns the result or error.
+  if (path === '/api/ai/selftest' && method === 'GET') {
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
+    const feature = url.searchParams.get('feature') ?? 'explain';
+    const inputs: Record<string, string> = {
+      explain: 'PANEL: TEST. VISIBLE CONTENT: SPY 700.00 +0.50%',
+      cmp: 'DATE: 2026-10-19\nCANDIDATES:\nt|capB|pe|roe\nAAPL|5000|35|150\nMSFT|3900|33|35\nNVDA|5100|45|90\nJPM|900|14|17\nXOM|700|14|15\nJNJ|600|16|25\nLLY|1100|50|70\nWMT|900|38|22\nV|800|30|50\nPG|380|25|30\nKO|300|24|40\nCOST|440|52|30',
+    };
+    const out = await runAi({ feature, input: inputs[feature] ?? inputs.explain, fresh: true }, async (n) => { const r = await vault.resolveKey(n); return r.ok ? r.data : null; }, (f, m, i, o, usd) => vault.recordUsage(f, m, i, o, usd), ctx);
+    return json(out.body, out.status);
+  }
+  // Relay diagnostics for the owner's admin token (no ship or key data, just counters and the last control frame).
+  if (path === '/api/ais/debug' && method === 'GET') {
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
+    return env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch(new Request('https://ais/debug'));
   }
   if (path === '/api/ais/ingest' && method === 'POST') {
     if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
-    return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ingest', { method: 'POST', body: await req.text() }));
+    return env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch(new Request('https://ais/ingest', { method: 'POST', body: await req.text() }));
   }
 
   // Job data cache: GitHub Actions write (and read back their own state) with the admin token.
@@ -230,7 +282,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return json({ ticket: `${deviceId}.${exp}.${await hmacHex(key, `ais:${deviceId}:${exp}`)}` });
   }
   if (path === '/api/ais/snapshot' && method === 'GET') {
-    const r = await env.AIS.get(env.AIS.idFromName('global')).fetch('https://ais/snapshot');
+    const r = await env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch('https://ais/snapshot');
     return new Response(r.body, { headers: { 'content-type': 'application/json', ...SECURITY_HEADERS } });
   }
 

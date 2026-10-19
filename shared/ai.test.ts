@@ -38,6 +38,9 @@ describe('toJsonSchema', () => {
     const j = toJsonSchema(FEATURES.ask.schema) as { required: string[]; properties: Record<string, { enum?: string[] }> };
     expect(j.required).toEqual(['kind', 'note']);
     expect(j.properties.kind!.enum).toEqual(['screen', 'command', 'unknown']);
-    expect((toJsonSchema(FEATURES.predict.schema) as { properties: { pUp: { minimum: number } } }).properties.pUp.minimum).toBe(0.02);
+    const pUp = (toJsonSchema(FEATURES.predict.schema) as { properties: { pUp: Record<string, unknown> } }).properties.pUp;
+    expect(pUp.minimum).toBeUndefined();
+    expect(pUp.description).toBe('A number at least 0.02 and at most 0.98.');
+    expect(JSON.stringify(toJsonSchema(FEATURES.cmp.schema))).not.toMatch(/maxLength|maxItems|minimum|maximum/);
   });
 });

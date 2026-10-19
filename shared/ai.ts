@@ -138,13 +138,20 @@ export function spendSpike(rows: { day: string; usd: number }[], today: string) 
   return { today: t, avg, warn: (t > 3 * avg && t > 0.5) || t > 5 };
 }
 
-/** Converts our small schema to JSON Schema for Anthropic tool use, which guarantees well-formed JSON replies. */
+/**
+ * Converts our small schema to a JSON Schema for Anthropic structured outputs (output_config.format), which
+ * guarantees well-formed JSON. Structured outputs reject numeric ranges and length limits, so those are written
+ * into descriptions instead; validate() still enforces them on the reply.
+ */
 export function toJsonSchema(s: Schema): Record<string, unknown> {
   switch (s.t) {
-    case 'string': return { type: 'string', ...(s.enum ? { enum: [...s.enum] } : {}), ...(s.max ? { maxLength: s.max } : {}) };
-    case 'number': return { type: 'number', ...(s.min != null ? { minimum: s.min } : {}), ...(s.max != null ? { maximum: s.max } : {}) };
+    case 'string': return { type: 'string', ...(s.enum ? { enum: [...s.enum] } : {}), ...(s.max ? { description: `At most ${s.max} characters.` } : {}) };
+    case 'number': {
+      const r = [s.min != null ? `at least ${s.min}` : '', s.max != null ? `at most ${s.max}` : ''].filter(Boolean).join(' and ');
+      return { type: 'number', ...(r ? { description: `A number ${r}.` } : {}) };
+    }
     case 'boolean': return { type: 'boolean' };
-    case 'array': return { type: 'array', items: toJsonSchema(s.of), ...(s.max ? { maxItems: s.max } : {}) };
+    case 'array': return { type: 'array', items: toJsonSchema(s.of), ...(s.max ? { description: `At most ${s.max} items.` } : {}) };
     case 'object': return {
       type: 'object',
       properties: Object.fromEntries(Object.entries(s.props).map(([k, v]) => [k, toJsonSchema(v)])),

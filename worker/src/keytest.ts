@@ -1,6 +1,7 @@
 // Settings > Keys > TEST ALL: one minimal, free request per saved key, run inside the proxy so keys never leave
 // it. Results say OK, missing, rejected (bad or expired key) or error (provider problem), never the key itself.
 import type { KeyResolver } from './upstream';
+import { toText } from './aishub';
 
 export type KeyStatus = 'ok' | 'missing' | 'rejected' | 'error' | 'unused';
 export interface KeyResult { group: string; keys: string[]; status: KeyStatus; detail: string; ms: number }
@@ -28,11 +29,11 @@ async function aisTest(key: string): Promise<[KeyStatus, string]> {
   return new Promise((resolve) => {
     const done = (r: [KeyStatus, string]) => { clearTimeout(timer); try { ws.close(); } catch { /* already closed */ } resolve(r); };
     // A busy shipping lane near Singapore; any message proves the key. A bad key closes the socket with an error.
-    const timer = setTimeout(() => done(['ok', 'stream accepted the key (no ship message within 6 s, which is normal at quiet times)']), 6000);
-    ws.addEventListener('message', (e) => {
-      const t = typeof e.data === 'string' ? e.data : '';
+    const timer = setTimeout(() => done(['ok', 'stream accepted the key, but no ship data arrived within 6 s (the map may stay empty)']), 6000);
+    ws.addEventListener('message', (e) => void toText(e.data).then((t) => {
+      if (/SubscriptionConfirmation/.test(t)) return; // wait for real ship data
       done(/error|invalid|api key/i.test(t) && !/MessageType/.test(t) ? ['rejected', 'AISStream refused the key'] : ['ok', 'live ship data received']);
-    });
+    }));
     ws.addEventListener('close', () => done(['rejected', 'AISStream closed the connection (usually an invalid key)']));
     ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[1.1, 103.6], [1.4, 104.1]]], FilterMessageTypes: ['PositionReport'] }));
   });

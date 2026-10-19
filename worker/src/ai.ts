@@ -62,11 +62,11 @@ async function sha(s: string) {
 }
 
 type Msg = { role: 'user' | 'assistant'; content: unknown };
-const TOOL = 'respond';
 
 /**
- * Claude answers by calling one forced tool whose input schema is the feature's schema, so the reply is always
- * well-formed JSON (no stray quotes or prose). Range and length rules are still checked by validate().
+ * Structured outputs (output_config.format json_schema): the reply text is always well-formed JSON matching the
+ * schema. Forced tool calls are not supported on every model (Sonnet 5.5 rejects them), so they are not used.
+ * Range and length rules are checked by validate().
  */
 async function call(key: string, model: string, maxTokens: number, system: string, messages: Msg[], schema: Schema) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -74,18 +74,18 @@ async function call(key: string, model: string, maxTokens: number, system: strin
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model, max_tokens: maxTokens, system, messages,
-      tools: [{ name: TOOL, description: 'Return the answer. Use only numbers present in the INPUT.', input_schema: toJsonSchema(schema) }],
-      tool_choice: { type: 'tool', name: TOOL },
+      output_config: { format: { type: 'json_schema', schema: toJsonSchema(schema) } },
     }),
   });
   if (!r.ok) {
     const status = r.status;
-    // Do not forward the upstream body; it can echo request details.
-    throw new AiError(status === 401 ? 424 : 502, status === 401 ? 'anthropic key rejected (Settings > Keys)' : status === 429 ? 'anthropic rate limit, try again shortly' : `anthropic returned ${status}`);
+    // Anthropic's error message explains bad requests; it never contains the key. Keep only the message.
+    let why = '';
+    try { why = String(((await r.json()) as { error?: { message?: string } }).error?.message ?? '').slice(0, 200); } catch { /* not JSON */ }
+    throw new AiError(status === 401 ? 424 : 502, status === 401 ? 'anthropic key rejected (Settings > Keys)' : status === 429 ? 'anthropic rate limit, try again shortly' : `anthropic returned ${status}${why ? `: ${why}` : ''}`);
   }
   const j = (await r.json()) as { content: { type: string; text?: string; id?: string; input?: unknown }[]; usage: Usage; stop_reason?: string };
-  const tool = j.content.find((c) => c.type === 'tool_use');
-  return { tool: tool ? { id: tool.id!, input: tool.input } : null, text: j.content.filter((c) => c.type === 'text').map((c) => c.text).join(''), usage: j.usage, truncated: j.stop_reason === 'max_tokens', content: j.content };
+  return { text: j.content.filter((c) => c.type === 'text').map((c) => c.text).join(''), usage: j.usage, truncated: j.stop_reason === 'max_tokens' };
 }
 
 class AiError extends Error {
@@ -117,7 +117,7 @@ export async function runAi(
   const p = (async (): Promise<AiOut> => {
     const key = await resolve('ANTHROPIC_API_KEY');
     if (!key) return { status: 424, body: { error: 'anthropic key not set (Settings > Keys)' } };
-    const system = `${BASE}\n\nTASK: ${SPEC[feature].task}\nFIELDS: ${SPEC[feature].schema}\nAnswer by calling the ${TOOL} tool.`;
+    const system = `${BASE}\n\nTASK: ${SPEC[feature].task}\nFIELDS: ${SPEC[feature].schema}`;
     const messages: Msg[] = [{ role: 'user', content: `INPUT:\n${input}` }];
     let usd = 0, inTok = 0, outTok = 0;
     let lastErr = '';
@@ -130,7 +130,7 @@ export async function runAi(
         outTok += r.usage.output_tokens;
         try {
           if (r.truncated) throw new Error('reply was cut off for length');
-          const parsed = r.tool ? r.tool.input : extractJson(r.text);
+          const parsed = extractJson(r.text);
           const err = validate(parsed, spec.schema);
           if (!err) {
             const out = { result: parsed, model: spec.model, version: spec.version, usd, at: Date.now(), label: AI_LABEL };
@@ -141,10 +141,9 @@ export async function runAi(
         } catch (e) {
           lastErr = e instanceof Error ? e.message : 'bad JSON';
         }
-        // One retry with the validation error (16.7). A tool_use turn must be answered with a tool_result.
-        const fix = `That answer was invalid (${lastErr}). Call ${TOOL} again with corrected values${/cut off/.test(lastErr) ? ', and keep every text field shorter' : ''}.`;
-        if (r.tool) messages.push({ role: 'assistant', content: r.content }, { role: 'user', content: [{ type: 'tool_result', tool_use_id: r.tool.id, content: fix, is_error: true }] });
-        else messages.push({ role: 'assistant', content: r.text.slice(0, 4000) || '(empty)' }, { role: 'user', content: fix });
+        // One retry with the validation error (16.7).
+        const fix = `That answer was invalid (${lastErr}). Answer again with corrected values${/cut off/.test(lastErr) ? ', and keep every text field shorter' : ''}.`;
+        messages.push({ role: 'assistant', content: r.text.slice(0, 4000) || '(empty)' }, { role: 'user', content: fix });
       }
       return { status: 422, body: { error: `AI reply failed validation twice (${lastErr}); showing code-only results`, usd } };
     } catch (e) {
