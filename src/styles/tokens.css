@@ -17,20 +17,28 @@
 /* Theme tokens (BUILD_PROMPT 9.1). Themes change tokens only, never layout. */
 :root,
 :root[data-theme='classic'] {
+  /* Classic terminal palette. Third-party approximations of the familiar terminal colors
+     (orange FB8B1E, green 4AF6C3, red FF433D, blue 0068FF), tuned by eye. Not official assets. */
   --bg: #000000;
-  --panel: #0a0a0a;
-  --text: #ffb800;
-  --text-dim: #b38200;
-  --accent: #fa7900;
-  --up: #00c805;
-  --down: #ff3b30;
-  --link: #4aa3ff;
-  --hairline: #262626;
+  --panel: #000000;
+  --text: #fb8b1e;        /* labels, headers, function codes */
+  --value: #f0f0f0;       /* data values are white */
+  --text-dim: #8c8c8c;    /* secondary text is neutral grey */
+  --accent: #fb8b1e;
+  --up: #4af6c3;
+  --down: #ff433d;
+  --link: #4d94ff;        /* 0068FF lifted slightly so it stays readable on black */
+  --blue: #0068ff;
+  --hairline: #2e2e2e;
   --radius: 0px;
-  --focus: #4aa3ff;
-  --head-bg: #1a1a1a;
-  --select-bg: #fa7900;
+  --focus: #0068ff;
+  --head-bg: #1c1c1c;
+  --select-bg: #fb8b1e;
   --select-fg: #000000;
+  --btn-bg: #262626;
+  --btn-fg: #f0f0f0;
+  --input-bg: #0d0d0d;
+  --go-bg: #4af6c3;
 }
 :root[data-theme='dark'] {
   --bg: #0b0b0b;
@@ -47,6 +55,12 @@
   --head-bg: #1c1c1c;
   --select-bg: #5b9dff;
   --select-fg: #0b0b0b;
+  --value: #f2f2f2;
+  --blue: #5b9dff;
+  --btn-bg: #222222;
+  --btn-fg: #e6e6e6;
+  --input-bg: #111111;
+  --go-bg: #3ecf6e;
 }
 :root[data-theme='light'] {
   --bg: #ffffff;
@@ -63,6 +77,12 @@
   --head-bg: #e6e6e6;
   --select-bg: #0050b3;
   --select-fg: #ffffff;
+  --value: #000000;
+  --blue: #0050b3;
+  --btn-bg: #e4e4e4;
+  --btn-fg: #111111;
+  --input-bg: #ffffff;
+  --go-bg: #007a1f;
 }
 /* Color-blind-safe up/down (blue/orange), toggled in Settings. */
 :root[data-cb='1'] {
