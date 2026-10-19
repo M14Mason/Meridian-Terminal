@@ -1,44 +1,58 @@
 # BUILD STATUS
 
-Last updated: 2026-10-19 (after M7)
+Last updated: 2026-10-19 (all milestones built)
 
 ## Current milestone
 
-M9 Supply chain (starting 2026-10-19)
+ALL MILESTONES BUILT (M0 to M12). Only ongoing work: supply chain extraction for the 500 largest companies (Claude Code sub-agents, batches of 40, `docs/SUPPLY_EXTRACTION.md`; progress in `public/supply/progress.json`).
 
 ## Completed milestones
 
 | Milestone | Commit | Notes |
 | --- | --- | --- |
-| M0 Scaffold | 1361421 | Vite 8 + React 19 + TS 6, ESLint 10, Vitest 5, CI + Pages deploy, secret scan, CLAUDE.md, docs |
-| M1 Proxy and pairing | 117f433 | Worker + SQLite Durable Object vault, pairing, devices, AES-GCM keys, allowlists, rate limits, upstream gateway with edge cache and coalescing. |
-| M2 Shell | 9886054 | Themes, font, free grid, command line, phone layout, PWA, sync engine, error boundaries. |
-| M3 Data and charts | 2332a7d | Adapters, scheduler, quotes, charts with indicators and drawings, HP, DES, COMP, multi-chart, replay, tape. |
-| M4 News and filings | 2629ed4 | News with latency badges, filings, FA (XBRL), insiders, 13F, calendars, 8-K. |
-| M5 Macro and heatmaps | 143a4e8 | Macro heatmaps, yield curve, FX, Bitcoin, crypto and sector heatmaps. |
-| M6 Tanker map | c033b95 | AIS relay DO, ticket auth, MapLibre map, chokepoints, PortWatch transits. |
-| M8 AI layer | 184f13b (parts 1 to 3, 1e31273..184f13b) | Proxy /api/ai (versioned prompts, schema validation + 1 retry, edge cache by input hash, in-flight dedupe, usage metered per feature), Explain on every panel, ASK, VAL, PRED (logged), SCOR, BRIF, CMP (cost confirm before each rebalance), FDIF, ECS (PARTIAL), journal critic, spend spike banner. Verified: unit tests with mocked Anthropic; UI and no-key error path in a browser. NOT verified live: real Claude replies (key is only in the production proxy). |
-| M7 Analytics | 76727e7 (parts 1 to 13, b932e36..76727e7) | Launchpad, presets, favorites, GURU, CLUS, backtester and strategy library, FRED dashboards, EIA energy, quant and risk, options (LIMITED), equity tools, filings intelligence, signals, EQS, MODEL, RVOL, BRDH, CIDX, ORB, JRNL, ETFH, TMAP, SOCL, FTD, BORR, CONG, SQZ, SAT, FRT, CDS, PARTIAL PAT/ESG/TICK. Data jobs: insiders, ftd, borrow, congress (GitHub Actions to proxy cache). |
+| M0 Scaffold | 1361421 | Vite + React + TS, lint, tests, CI, Pages, secret scanning |
+| M1 Proxy and pairing | 117f433 | Durable Object vault, pairing, encrypted keys, allowlists, gateway |
+| M2 Shell | 9886054 | Themes, grid, command line, phone layout, PWA, sync |
+| M3 Data and charts | 2332a7d | Adapters, scheduler, charts and indicators |
+| M4 News and filings | 2629ed4 | News, filings, FA, insiders, 13F, calendars |
+| M5 Macro and heatmaps | 143a4e8 | Heatmaps, yield curve, FX, Bitcoin |
+| M6 Tanker map | c033b95 | AIS relay, map, chokepoints, PortWatch |
+| M7 Analytics | 76727e7 | Hedge fund toolkit, quant, options (LIMITED), market structure, signals, EQS, MODEL |
+| M8 AI layer | 184f13b | /api/ai, Explain, ASK, VAL, PRED, SCOR, BRIF, CMP, FDIF, ECS (PARTIAL), journal critic, spend banner |
+| M9 Supply chain | f8c27c4 and later | Universe, schema and checks, SPLC (classic chart, 3D, globe map, table, CRITICAL markers, disruption simulator, stale-filing refresh), on-demand Sonnet extraction, geocoding (Nominatim, cached) |
+| M10 Portfolio | 4bcecc3 | Official Robinhood MCP client in the proxy (OAuth PKCE, dynamic registration, encrypted tokens, read allowlist), hourly cron, fallback endpoint and procedure, PORT, stale banner |
+| M11 Alerts | c0edfd7 | Proxy alert engine on 3 Cron Triggers, 11 rule types incl. chart-line crossings, cooldowns, quiet hours, history, Resend email (daily cap 40), test drill, ALRT, banner, sounds |
+| M12 Polish | 6ad7f73, b5b0aa7, d51f2dc | Amber sampled from owner's reference (#f2a446), GLOS + hover glossary, RPT print to PDF, QCMP, CONC, voice commands, Playwright e2e in CI, docs |
 
 ## In progress
 
-* **M9 Supply chain** per section 15 and the owner's plan (Decisions): universe and schema, keyword filter for 10-K text, Claude Code sub-agents extract the top 500 by market cap in batches of 40 (`docs/SUPPLY_EXTRACTION.md`, progress in `public/supply/progress.json`), on-demand Sonnet extraction for everything else, 3D graph and globe, disruption simulator.
-* M8 leftovers: spend spike EMAIL (with M11 email), earnings-beat and macro-release predictions (docs/OMITTED.md), live prompt eval set (needs the key; run once the owner opens VAL/PRED/ASK).
-* Chart-line alerts (idea 3) with M11.
+* Supply chain: agents extract ranks up to 500 (fund trusts GLD, IAU, IBIT, GLDM, SLV, ETHA skipped). After each batch: `echo '[]' | npm run -s supply:save`, `node scripts/supply/geocode.mjs` (cached, 1 request/second for new places), commit.
+
+## Not built or partial (documented in docs/OMITTED.md)
+
+* Earnings-beat and macro-release predictions (only price predictions are scored).
+* Alert email depends on the owner's Resend key (Cloudflare Email Service needs a custom domain).
+* ECS uses press releases (transcripts are premium); PAT, ESG, TICK are link-outs; options are LIMITED.
+* Lighthouse audit not automated yet; bundle budget and e2e run in CI.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
 * DONE 2026-10-18: Pages enabled, Cloudflare account, Worker deployed at https://meridian-proxy.masonngo70.workers.dev, SETUP_SECRET, KEY_ENCRYPTION_KEY and SEC_USER_AGENT set as Worker secrets (SEC UA kept out of the public repo), PROXY_URL repo variable set, live site verified (pairing screen, CORS 204 for Pages origin, 403 for others, 401 without token).
 * DONE: first device paired, all keys saved in SET > Keys (owner, 2026-10-19).
-* Owner: run GitHub > Actions > Data jobs > Run workflow once to fill FTD, BORR and CONG.
+* DONE 2026-10-19: Data jobs triggered by Claude (congress job fixed: Cloudflare 403 on the Python User-Agent). ALERT_EMAIL Worker secret set to the owner's address.
+* Owner: add a Resend key (free) for alert emails; connect Robinhood in PORT (turn on trade approval first; confirm with the account owner).
 * Owner: open SAT once to confirm the Copernicus keys work (untested; keys live only in the proxy).
 * Owner: try one AI feature (the ? button on any panel) to confirm the Anthropic key works in production.
 
 ## Unverified items still open (section 24)
 
 * 1 (partial): Workers, KV and Durable Object limits verified 2026-10-18 (see Decisions). Still open: DO WebSocket hibernation on free, Email Service on free.
-* 2 to 4, 6 to 12: open.
-* 5 (partial): GSAP license checked 2026-10-18, fine. Lightweight Charts attribution and map tiles still open.
+* Email Service on free: not usable here (needs a custom domain for Email Routing); Resend used instead.
+* 4 Robinhood MCP: metadata verified 2026-10-19 (PKCE S256, dynamic registration, public client, token at api.robinhood.com); registration ACCEPTED the hosted HTTPS callback. The sign-in leg needs the owner's login to confirm.
+* 5: GSAP checked; Lightweight Charts attribution logo kept on; maps use Natural Earth (no tiles).
+* 9: Anthropic pricing verified 2026-10-19 (shared/ai.ts).
+* 10: universe built from SEC lists (public/supply/universe.json, counts and skip reasons stored).
+* 2, 3, 6, 7, 8, 11, 12: see docs/DATA_SOURCES.md for what was verified per source; remaining terms checks are noted there.
 * Service worker and offline reload: code builds and serves correctly, but the in-app test browser does not support service workers, so offline mode is NOT yet verified. Verify on the iPhone and desktop after the first Pages deploy.
 
 ## Decisions made and why
@@ -73,17 +87,16 @@ M9 Supply chain (starting 2026-10-19)
 
 ## Known bugs
 
-* **Owner feedback 2026-10-19: the orange (amber) in the classic theme looks off.** Retune `--text`/`--accent`/`--select-bg` in src/styles/tokens.css during M12 polish, comparing against real terminal screenshots. Rest of the palette (white values, saturated green/red, navy title bands, dark red action buttons) is accepted.
-
+* FIXED 2026-10-19: classic amber retuned to #f2a446 sampled from the owner's reference screenshot (with reds #7c1d23 and #ac2217).
 * None open. Dependabot PR "Bump typescript to 7.0.2" fails by design (typescript-eslint needs TS < 6.1); close it. An ignore rule now prevents new ones.
 
 ## Next 5 steps
 
-1. M8: proxy AI endpoint with usage meter, cache and schema validation; verify current Anthropic pricing (verify item 9).
-2. M8: Explain button on every panel header, ASK, VAL.
-3. M8: PRED with prediction log, SCOR with scoring job.
-4. M8: BRIF, journal critic, filings summaries, CMP.
-5. M9: supply chain pilot (20 companies) with cost estimate, then wait for owner approval.
+1. Finish supply extraction to rank 500, geocode, commit.
+2. Owner: final checklist in docs/OWNER_SETUP.md (Resend key, Robinhood connect, test alert).
+3. Verify live: Robinhood OAuth on the real sign-in page (hosted callback accepted at registration on 2026-10-19), SAT with Copernicus keys, first real AI calls.
+4. Add earnings-beat predictions once a reliable free consensus source is confirmed.
+5. Optional: Lighthouse run in CI.
 
 ## Cost log (paid AI jobs)
 

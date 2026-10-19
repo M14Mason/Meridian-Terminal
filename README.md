@@ -9,6 +9,23 @@ Personal, keyboard-first market research terminal. Static React site on GitHub P
 * Progress: [BUILD_STATUS.md](BUILD_STATUS.md)
 * Owner setup steps: [docs/OWNER_SETUP.md](docs/OWNER_SETUP.md)
 
+## Quick tour (type a code in the command line, or press MENU)
+
+* **Markets:** WEI (index ETF proxies), MOST, BQ watchlist, HEAT, SECT, BRDH breadth, RVOL, TNKR tanker map
+* **One company:** `AAPL GP` chart, DES, FA, CF filings, CN news, INS insiders, VAL valuation, PRED prediction, SPLC supply chain, DCF, RV, ESH, OMON options, FDIF risk-factor diff, ECS earnings release summary
+* **Screening and quant:** EQS screener, ASK (plain English), BT backtester, STRT strategies, RISK, EF, MC, CORM, PAIR, FACT
+* **Investors and hedge fund tools:** GURU 13F, CLUS insider clusters, CONG House trades, SQZ squeeze radar, MARB merger arb, SPIN, MODEL rules index, CMP Claude model portfolio
+* **Macro:** ECO, YCRV, LIQ, CPIB, JOBS, CRED, RECS, CDS, FRT, INV, NGS, GRID
+* **Yours:** PORT Robinhood portfolio (read only), ALRT alerts with email, JRNL journal with AI critic, NOTE, BRIF morning brief
+* **Help:** HELP, LP launchpad, GLOS glossary (hover any table header), `?` on any panel explains it with AI
+
+## How it works
+
+* The site is static (GitHub Pages). Every data call goes through the proxy, which holds the keys (encrypted), enforces allowlists, caches at the edge and meters AI spend.
+* Cron Triggers in the proxy refresh the Robinhood portfolio hourly in market hours and run alerts every 10 minutes (hourly otherwise), so alerts fire with no device open.
+* GitHub Actions run daily data jobs (insiders, fails to deliver, borrow fees, House trades) into the proxy cache.
+* Supply chain shards for the 500 largest companies live in `public/supply/` (derived from SEC filings); any other company is extracted on demand.
+
 ## Develop
 
 ```bash
@@ -17,7 +34,10 @@ npm run hooks:install   # pre-commit secret scan
 npm run dev             # site on http://localhost:5173/Meridian-Terminal/
 npm run worker:dev      # proxy on http://localhost:8787
 npm run check           # lint, typecheck, tests, build, secret scan
+npm run e2e             # Playwright smoke tests (needs: npx playwright install chromium)
 ```
+
+Supply chain extraction: see [docs/SUPPLY_EXTRACTION.md](docs/SUPPLY_EXTRACTION.md). Portfolio fallback: [scripts/update-portfolio.md](scripts/update-portfolio.md).
 
 ## Layout
 
