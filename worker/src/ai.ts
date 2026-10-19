@@ -1,6 +1,6 @@
 // AI endpoint (BUILD_PROMPT 16): prompts live here (versioned), inputs are code-computed data from the app.
 // Cached by input hash at the edge, identical concurrent requests share one call, usage metered per feature.
-import { AI_LABEL, costUsd, extractJson, FEATURES, validate, type Feature, type Usage } from '../../shared/ai';
+import { AI_LABEL, costUsd, extractJson, FEATURES, toJsonSchema, validate, type Feature, type Schema, type Usage } from '../../shared/ai';
 import type { KeyResolver } from './upstream';
 
 const BASE = `You are the analysis engine inside a private market research terminal used by one person for learning.
@@ -61,19 +61,31 @@ async function sha(s: string) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function call(key: string, model: string, maxTokens: number, system: string, messages: { role: 'user' | 'assistant'; content: string }[]) {
+type Msg = { role: 'user' | 'assistant'; content: unknown };
+const TOOL = 'respond';
+
+/**
+ * Claude answers by calling one forced tool whose input schema is the feature's schema, so the reply is always
+ * well-formed JSON (no stray quotes or prose). Range and length rules are still checked by validate().
+ */
+async function call(key: string, model: string, maxTokens: number, system: string, messages: Msg[], schema: Schema) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
+    body: JSON.stringify({
+      model, max_tokens: maxTokens, system, messages,
+      tools: [{ name: TOOL, description: 'Return the answer. Use only numbers present in the INPUT.', input_schema: toJsonSchema(schema) }],
+      tool_choice: { type: 'tool', name: TOOL },
+    }),
   });
   if (!r.ok) {
     const status = r.status;
     // Do not forward the upstream body; it can echo request details.
     throw new AiError(status === 401 ? 424 : 502, status === 401 ? 'anthropic key rejected (Settings > Keys)' : status === 429 ? 'anthropic rate limit, try again shortly' : `anthropic returned ${status}`);
   }
-  const j = (await r.json()) as { content: { type: string; text?: string }[]; usage: Usage };
-  return { text: j.content.filter((c) => c.type === 'text').map((c) => c.text).join(''), usage: j.usage };
+  const j = (await r.json()) as { content: { type: string; text?: string; id?: string; input?: unknown }[]; usage: Usage; stop_reason?: string };
+  const tool = j.content.find((c) => c.type === 'tool_use');
+  return { tool: tool ? { id: tool.id!, input: tool.input } : null, text: j.content.filter((c) => c.type === 'text').map((c) => c.text).join(''), usage: j.usage, truncated: j.stop_reason === 'max_tokens', content: j.content };
 }
 
 class AiError extends Error {
@@ -105,19 +117,20 @@ export async function runAi(
   const p = (async (): Promise<AiOut> => {
     const key = await resolve('ANTHROPIC_API_KEY');
     if (!key) return { status: 424, body: { error: 'anthropic key not set (Settings > Keys)' } };
-    const system = `${BASE}\n\nTASK: ${SPEC[feature].task}\nSCHEMA: ${SPEC[feature].schema}`;
-    const messages: { role: 'user' | 'assistant'; content: string }[] = [{ role: 'user', content: `INPUT:\n${input}` }];
+    const system = `${BASE}\n\nTASK: ${SPEC[feature].task}\nFIELDS: ${SPEC[feature].schema}\nAnswer by calling the ${TOOL} tool.`;
+    const messages: Msg[] = [{ role: 'user', content: `INPUT:\n${input}` }];
     let usd = 0, inTok = 0, outTok = 0;
     let lastErr = '';
     try {
       for (let attempt = 0; attempt < 2; attempt++) {
-        const r = await call(key, spec.model, spec.maxTokens, system, messages);
+        const r = await call(key, spec.model, spec.maxTokens, system, messages, spec.schema);
         const c = costUsd(spec.model, r.usage);
         usd += c;
         inTok += r.usage.input_tokens + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0);
         outTok += r.usage.output_tokens;
         try {
-          const parsed = extractJson(r.text);
+          if (r.truncated) throw new Error('reply was cut off for length');
+          const parsed = r.tool ? r.tool.input : extractJson(r.text);
           const err = validate(parsed, spec.schema);
           if (!err) {
             const out = { result: parsed, model: spec.model, version: spec.version, usd, at: Date.now(), label: AI_LABEL };
@@ -128,8 +141,10 @@ export async function runAi(
         } catch (e) {
           lastErr = e instanceof Error ? e.message : 'bad JSON';
         }
-        // One retry with the validation error (16.7).
-        messages.push({ role: 'assistant', content: r.text.slice(0, 4000) }, { role: 'user', content: `That reply was invalid (${lastErr}). Reply again with ONLY the JSON object matching the SCHEMA.` });
+        // One retry with the validation error (16.7). A tool_use turn must be answered with a tool_result.
+        const fix = `That answer was invalid (${lastErr}). Call ${TOOL} again with corrected values${/cut off/.test(lastErr) ? ', and keep every text field shorter' : ''}.`;
+        if (r.tool) messages.push({ role: 'assistant', content: r.content }, { role: 'user', content: [{ type: 'tool_result', tool_use_id: r.tool.id, content: fix, is_error: true }] });
+        else messages.push({ role: 'assistant', content: r.text.slice(0, 4000) || '(empty)' }, { role: 'user', content: fix });
       }
       return { status: 422, body: { error: `AI reply failed validation twice (${lastErr}); showing code-only results`, usd } };
     } catch (e) {

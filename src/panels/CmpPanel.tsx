@@ -54,7 +54,7 @@ export default function CmpPanel({ run }: PanelProps) {
     try {
       const input = await buildInput();
       const est = estimateUsd('cmp', input.length);
-      if (!window.confirm(`Rebalance the Claude model portfolio?\n\nModel: Sonnet 5.5\nEstimated cost: about $${est.toFixed(3)} (input ${Math.round(input.length / 4).toLocaleString()} tokens + up to 3,000 output)\n\nHypothetical paper portfolio. No orders are placed.`)) { setState({}); return; }
+      if (!window.confirm(`Rebalance the Claude model portfolio?\n\nModel: Sonnet 5.5\nEstimated cost: about $${est.toFixed(3)} (input ${Math.round(input.length / 4).toLocaleString()} tokens + up to 5,000 output)\n\nHypothetical paper portfolio. No orders are placed.`)) { setState({}); return; }
       setState({ busy: 'Claude is picking positions (20 to 60 seconds)...' });
       const reply = await askAi<CmpOut>('cmp', input, true);
       const allowed = new Set([...input.matchAll(/^([A-Z][A-Z0-9.-]{0,9})\|/gm)].map((m) => m[1]!));

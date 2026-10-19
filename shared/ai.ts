@@ -81,9 +81,9 @@ export type Feature = 'explain' | 'ask' | 'valuation' | 'predict' | 'brief' | 'c
 export interface FeatureSpec { model: ModelId; maxTokens: number; version: string; cacheTtl: number; schema: Schema; maxInput: number }
 
 export const FEATURES: Record<Feature, FeatureSpec> = {
-  explain: { model: MODELS.haiku, maxTokens: 700, version: 'explain-1', cacheTtl: 6 * 3600, maxInput: 9000, schema: { t: 'object', props: { summary: str(700), points: strs(6), watch: str(400) } } },
+  explain: { model: MODELS.haiku, maxTokens: 700, version: 'explain-2', cacheTtl: 6 * 3600, maxInput: 9000, schema: { t: 'object', props: { summary: str(700), points: strs(6), watch: str(400) } } },
   ask: {
-    model: MODELS.haiku, maxTokens: 500, version: 'ask-1', cacheTtl: 24 * 3600, maxInput: 8000,
+    model: MODELS.haiku, maxTokens: 500, version: 'ask-2', cacheTtl: 24 * 3600, maxInput: 8000,
     schema: { t: 'object', optional: ['filters', 'sort', 'desc', 'command'], props: {
       kind: { t: 'string', enum: ['screen', 'command', 'unknown'] },
       filters: { t: 'array', max: 10, of: { t: 'object', props: { field: str(20), op: { t: 'string', enum: ['>', '<'] }, value: { t: 'number' } } } },
@@ -91,18 +91,18 @@ export const FEATURES: Record<Feature, FeatureSpec> = {
     } },
   },
   valuation: {
-    model: MODELS.sonnet, maxTokens: 1200, version: 'val-1', cacheTtl: 24 * 3600, maxInput: 9000,
+    model: MODELS.sonnet, maxTokens: 1200, version: 'val-2', cacheTtl: 24 * 3600, maxInput: 9000,
     schema: { t: 'object', props: { verdict: { t: 'string', enum: ['undervalued', 'fairly valued', 'overvalued', 'unclear'] }, low: { t: 'number', min: 0 }, high: { t: 'number', min: 0 }, reasoning: strs(6), agreesWithCode: { t: 'boolean' }, disagreement: str(500), risks: strs(5) } },
   },
   predict: {
-    model: MODELS.sonnet, maxTokens: 900, version: 'pred-1', cacheTtl: 6 * 3600, maxInput: 9000,
+    model: MODELS.sonnet, maxTokens: 900, version: 'pred-2', cacheTtl: 6 * 3600, maxInput: 9000,
     schema: { t: 'object', props: { pUp: { t: 'number', min: 0.02, max: 0.98 }, reasoning: strs(6), assumptions: strs(5), vsBaseline: str(400) } },
   },
-  brief: { model: MODELS.haiku, maxTokens: 900, version: 'brief-1', cacheTtl: 12 * 3600, maxInput: 12000, schema: { t: 'object', props: { headline: str(200), bullets: strs(8), watch: strs(5) } } },
-  critic: { model: MODELS.sonnet, maxTokens: 1200, version: 'critic-1', cacheTtl: 24 * 3600, maxInput: 12000, schema: { t: 'object', props: { strengths: strs(5), mistakes: strs(6), patterns: strs(5), rules: strs(5) } } },
-  filing: { model: MODELS.haiku, maxTokens: 900, version: 'filing-1', cacheTtl: 30 * 86400, maxInput: 30000, schema: { t: 'object', props: { summary: str(800), changes: strs(8), risks: strs(6), tone: { t: 'string', enum: ['more cautious', 'similar', 'more confident', 'unclear'] } } } },
+  brief: { model: MODELS.haiku, maxTokens: 900, version: 'brief-2', cacheTtl: 12 * 3600, maxInput: 12000, schema: { t: 'object', props: { headline: str(200), bullets: strs(8), watch: strs(5) } } },
+  critic: { model: MODELS.sonnet, maxTokens: 1200, version: 'critic-2', cacheTtl: 24 * 3600, maxInput: 12000, schema: { t: 'object', props: { strengths: strs(5), mistakes: strs(6), patterns: strs(5), rules: strs(5) } } },
+  filing: { model: MODELS.haiku, maxTokens: 900, version: 'filing-2', cacheTtl: 30 * 86400, maxInput: 30000, schema: { t: 'object', props: { summary: str(800), changes: strs(8), risks: strs(6), tone: { t: 'string', enum: ['more cautious', 'similar', 'more confident', 'unclear'] } } } },
   supply: {
-    model: MODELS.sonnet, maxTokens: 2500, version: 'supply-1', cacheTtl: 90 * 86400, maxInput: 30000,
+    model: MODELS.sonnet, maxTokens: 2500, version: 'supply-2', cacheTtl: 90 * 86400, maxInput: 30000,
     schema: { t: 'object', props: {
       industry: str(120),
       rels: { t: 'array', max: 60, of: { t: 'object', optional: ['share', 'geo'], props: { n: str(120), k: { t: 'string', enum: ['supplier', 'customer', 'partner'] }, what: str(160), share: { t: 'number', min: 0, max: 100 }, geo: str(80), conf: { t: 'number', min: 0, max: 1 }, ev: str(140) } } },
@@ -111,7 +111,7 @@ export const FEATURES: Record<Feature, FeatureSpec> = {
     } },
   },
   cmp: {
-    model: MODELS.sonnet, maxTokens: 3000, version: 'cmp-1', cacheTtl: 3600, maxInput: 14000,
+    model: MODELS.sonnet, maxTokens: 5000, version: 'cmp-2', cacheTtl: 3600, maxInput: 14000,
     schema: { t: 'object', props: { positions: { t: 'array', max: 30, of: { t: 'object', props: { t: str(10), w: { t: 'number', min: 0.5, max: 15 }, thesis: str(300) } } }, notes: str(800) } },
   },
 };
@@ -136,4 +136,20 @@ export function spendSpike(rows: { day: string; usd: number }[], today: string) 
   for (let i = 1; i <= 14; i++) prev.push(byDay.get(new Date(Date.parse(today) - i * 86_400_000).toISOString().slice(0, 10)) ?? 0);
   const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
   return { today: t, avg, warn: (t > 3 * avg && t > 0.5) || t > 5 };
+}
+
+/** Converts our small schema to JSON Schema for Anthropic tool use, which guarantees well-formed JSON replies. */
+export function toJsonSchema(s: Schema): Record<string, unknown> {
+  switch (s.t) {
+    case 'string': return { type: 'string', ...(s.enum ? { enum: [...s.enum] } : {}), ...(s.max ? { maxLength: s.max } : {}) };
+    case 'number': return { type: 'number', ...(s.min != null ? { minimum: s.min } : {}), ...(s.max != null ? { maximum: s.max } : {}) };
+    case 'boolean': return { type: 'boolean' };
+    case 'array': return { type: 'array', items: toJsonSchema(s.of), ...(s.max ? { maxItems: s.max } : {}) };
+    case 'object': return {
+      type: 'object',
+      properties: Object.fromEntries(Object.entries(s.props).map(([k, v]) => [k, toJsonSchema(v)])),
+      required: Object.keys(s.props).filter((k) => !s.optional?.includes(k)),
+      additionalProperties: false,
+    };
+  }
 }

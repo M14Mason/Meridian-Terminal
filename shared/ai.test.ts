@@ -31,3 +31,13 @@ describe('spendSpike', () => {
     expect(spendSpike([{ day: '2026-10-19', usd: 6 }], '2026-10-19').warn).toBe(true);
   });
 });
+
+import { toJsonSchema } from './ai';
+describe('toJsonSchema', () => {
+  it('maps required and optional fields, enums and ranges', () => {
+    const j = toJsonSchema(FEATURES.ask.schema) as { required: string[]; properties: Record<string, { enum?: string[] }> };
+    expect(j.required).toEqual(['kind', 'note']);
+    expect(j.properties.kind!.enum).toEqual(['screen', 'command', 'unknown']);
+    expect((toJsonSchema(FEATURES.predict.schema) as { properties: { pUp: { minimum: number } } }).properties.pUp.minimum).toBe(0.02);
+  });
+});
