@@ -21,10 +21,9 @@ M3 Data and charts (next)
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
-* Enable GitHub Pages with Source = GitHub Actions.
-* Create Cloudflare account and run `npx wrangler login`.
-* Set Worker secrets `SETUP_SECRET` and `KEY_ENCRYPTION_KEY`, deploy the Worker, add the `PROXY_URL` repo variable.
-* Answer: which name and email to use in the SEC User-Agent.
+* DONE 2026-10-18: Pages enabled, Cloudflare account, Worker deployed at https://meridian-proxy.masonngo70.workers.dev, SETUP_SECRET, KEY_ENCRYPTION_KEY and SEC_USER_AGENT set as Worker secrets (SEC UA kept out of the public repo), PROXY_URL repo variable set, live site verified (pairing screen, CORS 204 for Pages origin, 403 for others, 401 without token).
+* Owner: pair the first device on the live site with the setup secret.
+* Owner: save keys in SET > Keys (Alpaca paper, Anthropic, FRED, EIA, Finnhub, AISStream; optional ones later).
 
 ## Unverified items still open (section 24)
 
