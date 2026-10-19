@@ -1,30 +1,35 @@
 # BUILD STATUS
 
-Last updated: 2026-10-19
+Last updated: 2026-10-19 (after M7)
 
 ## Current milestone
 
-M6 Tanker map (in progress)
+M8 AI layer (starting 2026-10-19)
 
 ## Completed milestones
 
 | Milestone | Commit | Notes |
 | --- | --- | --- |
 | M0 Scaffold | 1361421 | Vite 8 + React 19 + TS 6, ESLint 10, Vitest 5, CI + Pages deploy, secret scan, CLAUDE.md, docs |
-| M1 Proxy and pairing | 117f433 | Worker + SQLite Durable Object vault, CORS, setup-secret and six-digit pairing, devices and revoke, AES-GCM keys, Alpaca and Robinhood allowlists, rate limits, usage meter skeleton, health, upstream gateway with edge cache and coalescing, pairing and Settings UI. Verified end to end against `wrangler dev` and in a browser. |
-| M2 Shell | 9886054 | Themes (classic, modern dark, light, color-blind), IBM Plex Mono, free grid (drag, resize, snap, min/max, tab-stack, duplicate, lock, pop-out), command line with registry and fuzzy autocomplete, history, cheat sheet, phone layout with bottom tabs, swipe and pull to refresh, PWA manifest and icons, service worker, sync engine (LWW, tombstones, offline outbox, export/import), error boundaries, offline banner, data health skeleton, sticky notes. Verified in a browser at desktop and 375 px phone width. |
+| M1 Proxy and pairing | 117f433 | Worker + SQLite Durable Object vault, pairing, devices, AES-GCM keys, allowlists, rate limits, upstream gateway with edge cache and coalescing. |
+| M2 Shell | 9886054 | Themes, font, free grid, command line, phone layout, PWA, sync engine, error boundaries. |
+| M3 Data and charts | 2332a7d | Adapters, scheduler, quotes, charts with indicators and drawings, HP, DES, COMP, multi-chart, replay, tape. |
+| M4 News and filings | 2629ed4 | News with latency badges, filings, FA (XBRL), insiders, 13F, calendars, 8-K. |
+| M5 Macro and heatmaps | 143a4e8 | Macro heatmaps, yield curve, FX, Bitcoin, crypto and sector heatmaps. |
+| M6 Tanker map | c033b95 | AIS relay DO, ticket auth, MapLibre map, chokepoints, PortWatch transits. |
+| M7 Analytics | 76727e7 (parts 1 to 13, b932e36..76727e7) | Launchpad, presets, favorites, GURU, CLUS, backtester and strategy library, FRED dashboards, EIA energy, quant and risk, options (LIMITED), equity tools, filings intelligence, signals, EQS, MODEL, RVOL, BRDH, CIDX, ORB, JRNL, ETFH, TMAP, SOCL, FTD, BORR, CONG, SQZ, SAT, FRT, CDS, PARTIAL PAT/ESG/TICK. Data jobs: insiders, ftd, borrow, congress (GitHub Actions to proxy cache). |
 
 ## In progress
 
-* M3, M4, M5 DONE (see git log). Proxy deployed with M3 providers; redeploy needed for PortWatch and AIS (`npm run worker:deploy`).
-* **M6 next steps:** (1) deploy Worker (adds AisHub DO, migration v2); (2) generate ADMIN_TOKEN and set it with `wrangler secret put ADMIN_TOKEN` and `gh secret set MERIDIAN_ADMIN_TOKEN` without printing it; (3) build `src/data/adapters/ais.ts` (ticket, WebSocket with reconnect, snapshot fallback) and `src/panels/TankerPanel.tsx` (MapLibre, Natural Earth land from world-atlas land-110m, no tiles; views tankers / chokepoints / all ships with bbox; vessel drawer; dark-ship list; zone counters plus PortWatch daily transits; WTI/Brent from FRED; honest limits text 14.7); (4) optional `.github/workflows/ais-snapshot.yml` gated by repo variable AIS_SNAPSHOT_ENABLED; (5) register TNKR.
-* Then M7 to M12 per docs/BUILD_PROMPT.md PLUS docs/ADDITIONS.md (owner additions 2026-10-19: launchpad, presets, ideas 1 to 9, hedge fund toolkit, superinvestor 13F tracker, model portfolio). Owner has saved all keys.
+* **M8 AI layer** per BUILD_PROMPT section 16 and docs/ADDITIONS.md (CMP). Order: proxy `/api/ai/*` endpoint (Anthropic key from vault, per-feature max tokens, input-hash cache, usage metering per feature, schema validation with one retry, spike warning) -> explain button -> ASK -> VAL -> PRED + prediction log -> SCOR + scoring job -> BRIF -> journal critic -> filings summaries -> CMP (cost shown before each rebalance).
+* Chart-line alerts (idea 3) are built with M11.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
 * DONE 2026-10-18: Pages enabled, Cloudflare account, Worker deployed at https://meridian-proxy.masonngo70.workers.dev, SETUP_SECRET, KEY_ENCRYPTION_KEY and SEC_USER_AGENT set as Worker secrets (SEC UA kept out of the public repo), PROXY_URL repo variable set, live site verified (pairing screen, CORS 204 for Pages origin, 403 for others, 401 without token).
-* Owner: pair the first device on the live site with the setup secret.
-* Owner: save keys in SET > Keys (Alpaca paper, Anthropic, FRED, EIA, Finnhub, AISStream; optional ones later).
+* DONE: first device paired, all keys saved in SET > Keys (owner, 2026-10-19).
+* Owner: run GitHub > Actions > Data jobs > Run workflow once to fill FTD, BORR and CONG.
+* Owner: open SAT once to confirm the Copernicus keys work (untested; keys live only in the proxy).
 
 ## Unverified items still open (section 24)
 
@@ -68,11 +73,11 @@ M6 Tanker map (in progress)
 
 ## Next 5 steps
 
-1. M3: verify Alpaca, Finnhub and Massive free-tier limits and terms (verify items 6), record in docs/DATA_SOURCES.md.
-2. M3: client adapter layer (normalized shapes) on top of the scheduler; batch quote requests to protect the 100,000/day Worker budget.
-3. M3: proxy providers for Finnhub, Massive, EDGAR (SEC User-Agent var), FRED, EIA; ticker universe from SEC company_tickers.json for autocomplete.
-4. M3: charts (TradingView Lightweight Charts, check attribution), indicators with reference-value tests, drawing tools synced as `drawings`.
-5. M3: BQ watchlist, HP, DES, COMP, BETA, TRA, MOST, WEI (labeled ETF proxies), multi-chart, replay, ticker tape, IndexedDB data cache with staleness labels.
+1. M8: proxy AI endpoint with usage meter, cache and schema validation; verify current Anthropic pricing (verify item 9).
+2. M8: Explain button on every panel header, ASK, VAL.
+3. M8: PRED with prediction log, SCOR with scoring job.
+4. M8: BRIF, journal critic, filings summaries, CMP.
+5. M9: supply chain pilot (20 companies) with cost estimate, then wait for owner approval.
 
 ## Cost log (paid AI jobs)
 
