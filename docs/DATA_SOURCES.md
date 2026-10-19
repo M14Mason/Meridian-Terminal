@@ -25,3 +25,5 @@ One row per provider: what it feeds, free limits, cadence used, terms note, and 
 | CFTC (`cftc`) | Commitments of Traders | No key | Daily | Wired, not yet tested. |
 | IMF DataMapper | (dropped) | | | Returns 403 to all automated clients, including direct curl. Replaced by World Bank and FRED international series. |
 | US Treasury fiscaldata and TreasuryDirect | (not proxied) | | | Both fail TLS with Cloudflare (HTTP 525 from the edge, tested with a temporary Worker). Auction data will come from a GitHub Actions cache job (5.3). |
+| Cboe delayed quotes JSON | (not used) | | | Endpoint works (full chains with open interest), but Cboe's US website terms on automated access could not be confirmed (2026-10-19). Not used per hard rules 2.7 and 2.11. Options use Alpaca's indicative feed instead (no open interest). |
+| IMF PortWatch (`portwatch`) | Daily chokepoint transits | Keyless ArcGIS open data | 6 h | Live-tested 2026-10-18. |
