@@ -115,6 +115,12 @@ export class Vault extends DurableObject<Env> {
   sync(deviceId: string, since: unknown, changes: unknown) {
     return this.wrap(() => this.core.sync(deviceId, since, changes));
   }
+  putBlob(name: string, body: string) {
+    return this.wrap(() => this.core.putBlob(name, body));
+  }
+  getBlob(name: string) {
+    return this.wrap(() => this.core.getBlob(name));
+  }
   logBlocked(what: string, detail: string) {
     return this.wrap(() => this.core.logBlocked(what, detail));
   }

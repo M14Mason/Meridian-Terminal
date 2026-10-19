@@ -206,3 +206,22 @@
 @media (max-width: 767px) { .tnkr__body { flex-direction: column; } .tnkr__map { min-height: 360px; } .tnkr__side { width: auto; } }
 .maplibregl-ctrl-attrib { background: rgba(0,0,0,0.6) !important; color: var(--text-dim) !important; font-size: 10px; }
 .maplibregl-ctrl-attrib a { color: var(--text-dim) !important; }
+
+/* Launchpad and favorites */
+.lp__box { max-width: 1100px; }
+.lp { display: flex; flex-direction: column; gap: 10px; }
+.lp h3 { color: var(--text); font-size: 11px; letter-spacing: 0.08em; margin: 0 0 4px; border-bottom: 1px solid var(--hairline); padding-bottom: 2px; }
+.lp__search { font-size: 15px; }
+.lp__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.lp__list { display: flex; flex-direction: column; gap: 1px; }
+.lp__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lp__chip { display: inline-flex; align-items: stretch; }
+.lp__run { flex: 1; text-align: left; min-height: 26px; padding: 2px 6px; font-size: 12px; background: transparent; }
+.lp__run:hover { background: var(--btn-bg); }
+.lp__code { color: var(--text); font-weight: 600; display: inline-block; min-width: 3.6em; }
+.lp__chip--planned .lp__run { color: var(--text-dim); }
+.lp__star { min-height: 26px; padding: 0 6px; background: transparent; color: var(--text); }
+.lp__preset { background: var(--btn-bg); }
+.favbar { display: flex; gap: 3px; padding: 2px 8px; border-bottom: 1px solid var(--hairline); overflow-x: auto; }
+.favbar button { min-height: 22px; padding: 0 8px; font-size: 11px; color: var(--text); }
+.menu-btn { color: #000 !important; background: var(--text) !important; font-weight: 700; min-height: 26px; padding: 2px 10px; }

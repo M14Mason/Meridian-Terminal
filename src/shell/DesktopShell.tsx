@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { APP_SHORT_NAME, BASE_PATH } from '../config';
 import { CheatSheet } from './CheatSheet';
+import { FavoritesBar, LaunchpadOverlay } from './Launchpad';
+import { buildPreset, type Preset } from './presets';
 import { CommandLine } from './CommandLine';
 import { EMPTY_LAYOUT, reduce, type Layout } from './layout';
 import { layoutStore } from './layoutStore';
@@ -26,6 +28,7 @@ export function DesktopShell() {
   const [cheat, setCheat] = useState(false);
   const settings = useSettings();
   const [layoutsOpen, setLayoutsOpen] = useState(false);
+  const [launch, setLaunch] = useState(false);
   const cmdRef = useRef<HTMLInputElement>(null);
   // Latest layout for event handlers, updated after each commit.
   const layoutRef = useRef(layout);
@@ -92,12 +95,16 @@ export function DesktopShell() {
       } else if (e.key === '/' && e.ctrlKey) {
         e.preventDefault();
         setCheat((c) => !c);
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        setLaunch((v) => !v);
       } else if (e.key === 'F1' || (e.key === '?' && !typing)) {
         e.preventDefault();
         run('HELP', { newFrame: true });
       } else if (e.key === 'Escape') {
         setCheat(false);
         setLayoutsOpen(false);
+        setLaunch(false);
       } else if (e.altKey && !e.metaKey && !e.ctrlKey) {
         const digit = /^Digit([1-9])$/.exec(e.code);
         if (digit) {
@@ -132,6 +139,7 @@ export function DesktopShell() {
     <div className="shell">
       <div className="topbar">
         <span className="brand">{APP_SHORT_NAME.toUpperCase()}</span>
+        <button className="menu-btn" onClick={() => setLaunch(true)} title="Launchpad (F2)">MENU</button>
         <CommandLine inputRef={cmdRef} onRun={(c, o) => run(c, o)} />
         <div className="topbar__menu">
           <button onClick={() => setLayoutsOpen((v) => !v)} aria-haspopup="menu" aria-expanded={layoutsOpen}>
@@ -187,10 +195,21 @@ export function DesktopShell() {
         </button>
         <StatusBar />
       </div>
+      <FavoritesBar onRun={(c) => void run(c, { newFrame: true })} />
       <OfflineBanner />
       {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
       <Workspace layout={layout} dispatch={dispatch} run={(c, o) => void run(c, o)} popOut={popOut} />
       {cheat && <CheatSheet onClose={() => setCheat(false)} />}
+      {launch && (
+        <LaunchpadOverlay
+          onClose={() => setLaunch(false)}
+          onRun={(c) => void run(c, { newFrame: true })}
+          onPreset={(p: Preset) => {
+            if (layout.frames.length && !window.confirm(`Load "${p.name}"? It replaces the current panels. Save first with LAYOUTS if you want to keep them.`)) return;
+            dispatch({ type: 'replace', layout: buildPreset(p) });
+          }}
+        />
+      )}
     </div>
   );
 }

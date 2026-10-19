@@ -10,6 +10,8 @@ export interface Settings {
   lowPower: 'auto' | 'on' | 'off';
   sounds: boolean;
   learnMode: boolean;
+  /** Starred function codes, shown on the favorites bar and in the Launchpad. */
+  favorites: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lowPower: 'auto',
   sounds: false,
   learnMode: false,
+  favorites: ['WEI', 'GP', 'N', 'HEAT', 'GURU', 'TNKR'],
 };
 
 export function useSettings(): Settings {

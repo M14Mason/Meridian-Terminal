@@ -1,0 +1,30 @@
+// Superinvestors tracked by GURU. CIKs verified against SEC EDGAR submissions on 2026-10-19.
+export interface Fund { cik: number; name: string; manager: string; style: string }
+
+export const FUNDS: Fund[] = [
+  { cik: 1067983, name: 'Berkshire Hathaway', manager: 'Warren Buffett', style: 'Value, concentrated' },
+  { cik: 1336528, name: 'Pershing Square', manager: 'Bill Ackman', style: 'Activist, concentrated' },
+  { cik: 1649339, name: 'Scion Asset Management', manager: 'Michael Burry', style: 'Contrarian' },
+  { cik: 1350694, name: 'Bridgewater Associates', manager: 'Ray Dalio (founder)', style: 'Global macro' },
+  { cik: 1037389, name: 'Renaissance Technologies', manager: 'Jim Simons (founder)', style: 'Quantitative' },
+  { cik: 1536411, name: 'Duquesne Family Office', manager: 'Stanley Druckenmiller', style: 'Macro, growth' },
+  { cik: 1656456, name: 'Appaloosa', manager: 'David Tepper', style: 'Distressed, macro' },
+  { cik: 1061768, name: 'Baupost Group', manager: 'Seth Klarman', style: 'Deep value' },
+  { cik: 1040273, name: 'Third Point', manager: 'Dan Loeb', style: 'Event driven, activist' },
+  { cik: 1079114, name: 'Greenlight Capital', manager: 'David Einhorn', style: 'Value, long/short' },
+  { cik: 1167483, name: 'Tiger Global', manager: 'Chase Coleman', style: 'Growth, tech' },
+  { cik: 1135730, name: 'Coatue Management', manager: 'Philippe Laffont', style: 'Growth, tech' },
+  { cik: 1791786, name: 'Elliott Investment Management', manager: 'Paul Singer', style: 'Activist, multi-strategy' },
+  { cik: 921669, name: 'Icahn', manager: 'Carl Icahn', style: 'Activist' },
+  { cik: 1029160, name: 'Soros Fund Management', manager: 'George Soros (founder)', style: 'Global macro' },
+  { cik: 1423053, name: 'Citadel Advisors', manager: 'Ken Griffin', style: 'Multi-strategy' },
+  { cik: 1179392, name: 'Two Sigma Investments', manager: 'Siegel and Overdeck', style: 'Quantitative' },
+  { cik: 1697748, name: 'ARK Investment Management', manager: 'Cathie Wood', style: 'Disruptive growth' },
+  { cik: 1709323, name: 'Himalaya Capital', manager: 'Li Lu', style: 'Value, concentrated' },
+  { cik: 1061165, name: 'Lone Pine Capital', manager: 'Stephen Mandel', style: 'Growth, long/short' },
+  { cik: 1103804, name: 'Viking Global Investors', manager: 'Andreas Halvorsen', style: 'Long/short equity' },
+  { cik: 1166559, name: 'Gates Foundation Trust', manager: 'Gates Foundation', style: 'Endowment' },
+  { cik: 1096343, name: 'Markel Group', manager: 'Tom Gayner', style: 'Quality compounders' },
+  { cik: 1112520, name: 'Akre Capital Management', manager: 'Chuck Akre (founder)', style: 'Quality compounders' },
+  { cik: 1569205, name: 'Fundsmith', manager: 'Terry Smith', style: 'Quality growth' },
+];

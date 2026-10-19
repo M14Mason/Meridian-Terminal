@@ -116,6 +116,15 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ingest', { method: 'POST', body: await req.text() }));
   }
 
+  // Job data cache: GitHub Actions write with the admin token.
+  const cachePut = path.match(/^\/api\/cache\/([a-z0-9-]{1,40})$/);
+  if (cachePut && method === 'PUT') {
+    const admin = typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
+    if (!admin || !timingSafeEqual(await hmacHex(admin, bearer(req) ?? ''), await hmacHex(admin, admin))) return json({ error: 'unauthorized' }, 401);
+    const body = await req.text();
+    return fromResult(await vault.putBlob(cachePut[1]!, body), () => ({ ok: true }));
+  }
+
   // ----- Everything below needs a valid device token -----
   const auth = await vault.authorize(bearer(req));
   if (!auth.ok) return json({ error: auth.error }, auth.status);
@@ -164,6 +173,14 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const body = await readJson(req, SYNC_MAX_BODY);
     if (!body) return json({ error: 'bad request' }, 400);
     return fromResult(await vault.sync(deviceId, body.since, body.changes));
+  }
+
+  const cacheGet = path.match(/^\/api\/cache\/([a-z0-9-]{1,40})$/);
+  if (cacheGet && method === 'GET') {
+    const r = await vault.getBlob(cacheGet[1]!);
+    if (!r.ok) return json({ error: r.error }, r.status);
+    if (!r.data) return json({ error: 'no data yet' }, 404);
+    return new Response(r.data.body, { headers: { 'content-type': 'application/json', 'x-fetched-at': String(r.data.at), ...SECURITY_HEADERS } });
   }
 
   if (path === '/api/usage' && method === 'GET') {

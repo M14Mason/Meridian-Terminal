@@ -5,6 +5,7 @@ export const SHORTCUTS: [string, string][] = [
   ['Alt+Enter', 'Run in a new panel'],
   ['Tab', 'Complete the highlighted function'],
   ['Up / Down', 'Command history, or move through suggestions'],
+  ['F2  or  MENU', 'Launchpad: sections, favorites, workspaces'],
   ['F1  or  ?', 'Function list (HELP)'],
   ['Ctrl+/', 'This cheat sheet'],
   ['Alt+1 to Alt+9', 'Focus panel 1 to 9'],

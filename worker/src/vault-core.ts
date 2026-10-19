@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS sync (
   v TEXT, seq INTEGER NOT NULL, PRIMARY KEY (c, id));
 CREATE INDEX IF NOT EXISTS sync_seq ON sync (seq);
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, n INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS blobs (name TEXT PRIMARY KEY, body TEXT NOT NULL, at INTEGER NOT NULL);
 `;
 
 export function cleanDeviceName(raw: unknown): string {
@@ -348,6 +349,23 @@ export class VaultCore {
     });
     const seq = page.length ? Number(page[page.length - 1]!.seq) : Math.max(sinceSeq, Number(this.rows("SELECT n FROM meta WHERE k = 'seq'")[0]?.n ?? 0));
     return { records, seq, more };
+  }
+
+  // ---------- Job data cache (written by GitHub Actions with the admin token) ----------
+
+  static readonly BLOB_NAME = /^[a-z0-9-]{1,40}$/;
+  static readonly BLOB_MAX = 1_900_000;
+
+  putBlob(name: string, body: string) {
+    if (!VaultCore.BLOB_NAME.test(name)) throw new VaultError(400, 'bad name');
+    if (body.length > VaultCore.BLOB_MAX) throw new VaultError(413, 'too large');
+    this.sql.exec('INSERT INTO blobs (name, body, at) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET body = excluded.body, at = excluded.at', name, body, this.now());
+  }
+
+  getBlob(name: string): { body: string; at: number } | null {
+    if (!VaultCore.BLOB_NAME.test(name)) throw new VaultError(400, 'bad name');
+    const r = this.rows('SELECT body, at FROM blobs WHERE name = ?', name)[0];
+    return r ? { body: String(r.body), at: Number(r.at) } : null;
   }
 
   // ---------- Audit ----------

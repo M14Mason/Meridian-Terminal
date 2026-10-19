@@ -180,3 +180,13 @@ describe('sync', () => {
     expect(p2.more).toBe(false);
   });
 });
+
+describe('job cache', () => {
+  it('stores and reads blobs with name and size checks', () => {
+    v.putBlob('insiders', '{"a":1}');
+    expect(v.getBlob('insiders')).toEqual({ body: '{"a":1}', at: t });
+    expect(v.getBlob('missing')).toBeNull();
+    expect(() => v.putBlob('Bad Name', 'x')).toThrow();
+    expect(() => v.putBlob('big', 'x'.repeat(2_000_000))).toThrow();
+  });
+});

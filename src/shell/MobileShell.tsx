@@ -28,7 +28,7 @@ const DEFAULTS: TabState = {
   news: { code: 'N' },
   maps: { code: 'TNKR' },
   portfolio: { code: 'PORT' },
-  more: { code: 'HELP' },
+  more: { code: 'LP' },
 };
 
 const KEY = 'meridian.mobileTabs.v1';
