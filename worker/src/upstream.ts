@@ -175,6 +175,14 @@ const SPECS: Spec[] = [
     ttl: [[/./, 900]],
   },
   {
+    // IMF PortWatch daily chokepoint transits (ArcGIS open data). Free, no key.
+    id: 'portwatch',
+    host: 'services9.arcgis.com',
+    paths: [/^\/weJ1QsnbMYJlCHdG\/arcgis\/rest\/services\/Daily_Chokepoints_Data\/FeatureServer\/0\/query$/],
+    auth: { kind: 'none' },
+    ttl: [[/./, 6 * 3600]],
+  },
+  {
     id: 'nyfed',
     host: 'markets.newyorkfed.org',
     paths: [/^\/api\/(rp\/(reverserepo\/propositions\/search|all\/all\/results\/last\/\d{1,3})|rates\/(all|unsecured\/(sofr|effr|obfr)|secured\/(sofr|bgcr|tgcr))\/last\/\d{1,3})\.json$/],

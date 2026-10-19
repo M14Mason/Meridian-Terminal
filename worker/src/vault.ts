@@ -74,6 +74,9 @@ export class Vault extends DurableObject<Env> {
     });
   }
 
+  deviceExists(id: string) {
+    return this.wrap(() => this.core.deviceExists(id));
+  }
   createCode(deviceId: string) {
     return this.wrap(() => this.core.createAddDeviceCode(deviceId));
   }

@@ -7,6 +7,8 @@ import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import type { Result } from './vault';
 
 export { Vault } from './vault';
+export { AisHub } from './aishub';
+import { hmacHex, timingSafeEqual } from './crypto';
 
 const MAX_BODY = 16 * 1024;
 // Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
@@ -95,12 +97,42 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return fromResult(r);
   }
 
+  // AIS live feed. Browsers cannot set headers on WebSockets, so the device first gets a
+  // signed 60 s ticket over an authenticated call; the token never appears in a URL.
+  if (path === '/api/ais/ws') {
+    const t = url.searchParams.get('ticket') ?? '';
+    const [dev, exp, sig] = t.split('.');
+    const key = typeof env.KEY_ENCRYPTION_KEY === 'string' ? env.KEY_ENCRYPTION_KEY : '';
+    if (!dev || !exp || !sig || !key || Number(exp) < Date.now()) return json({ error: 'unauthorized' }, 401);
+    if (!timingSafeEqual(await hmacHex(key, `ais:${dev}:${exp}`), sig)) return json({ error: 'unauthorized' }, 401);
+    const exists = await vault.deviceExists(dev);
+    if (!exists.ok || !exists.data) return json({ error: 'unauthorized' }, 401);
+    return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ws', req));
+  }
+  if (path === '/api/ais/ingest' && method === 'POST') {
+    const admin = typeof env.ADMIN_TOKEN === 'string' ? env.ADMIN_TOKEN : '';
+    const given = bearer(req) ?? '';
+    if (!admin || !timingSafeEqual(await hmacHex(admin, given), await hmacHex(admin, admin))) return json({ error: 'unauthorized' }, 401);
+    return env.AIS.get(env.AIS.idFromName('global')).fetch(new Request('https://ais/ingest', { method: 'POST', body: await req.text() }));
+  }
+
   // ----- Everything below needs a valid device token -----
   const auth = await vault.authorize(bearer(req));
   if (!auth.ok) return json({ error: auth.error }, auth.status);
   const deviceId = auth.data;
 
   if (path === '/api/session' && method === 'GET') return json({ deviceId });
+
+  if (path === '/api/ais/ticket' && method === 'GET') {
+    const key = typeof env.KEY_ENCRYPTION_KEY === 'string' ? env.KEY_ENCRYPTION_KEY : '';
+    if (!key) return json({ error: 'not configured' }, 503);
+    const exp = Date.now() + 60_000;
+    return json({ ticket: `${deviceId}.${exp}.${await hmacHex(key, `ais:${deviceId}:${exp}`)}` });
+  }
+  if (path === '/api/ais/snapshot' && method === 'GET') {
+    const r = await env.AIS.get(env.AIS.idFromName('global')).fetch('https://ais/snapshot');
+    return new Response(r.body, { headers: { 'content-type': 'application/json', ...SECURITY_HEADERS } });
+  }
 
   if (path === '/api/devices' && method === 'GET') return fromResult(await vault.listDevices(deviceId));
   if (path === '/api/devices/code' && method === 'POST') return fromResult(await vault.createCode(deviceId));

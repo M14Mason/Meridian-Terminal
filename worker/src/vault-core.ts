@@ -201,6 +201,10 @@ export class VaultCore {
     return String(row.id);
   }
 
+  deviceExists(id: string): boolean {
+    return this.rows('SELECT 1 AS x FROM devices WHERE id = ?', id).length > 0;
+  }
+
   listDevices(currentId?: string): DeviceInfo[] {
     return this.rows('SELECT id, name, created_at, last_seen FROM devices ORDER BY created_at').map((r) => ({
       id: String(r.id),

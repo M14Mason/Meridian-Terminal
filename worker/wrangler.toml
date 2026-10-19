@@ -14,9 +14,17 @@ ALLOWED_ORIGINS = "https://m14mason.github.io,http://localhost:5173"
 name = "VAULT"
 class_name = "Vault"
 
+[[durable_objects.bindings]]
+name = "AIS"
+class_name = "AisHub"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Vault"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["AisHub"]
 
 [observability]
 enabled = true
