@@ -12,7 +12,7 @@ M3 Data and charts (next)
 | --- | --- | --- |
 | M0 Scaffold | 1361421 | Vite 8 + React 19 + TS 6, ESLint 10, Vitest 5, CI + Pages deploy, secret scan, CLAUDE.md, docs |
 | M1 Proxy and pairing | 117f433 | Worker + SQLite Durable Object vault, CORS, setup-secret and six-digit pairing, devices and revoke, AES-GCM keys, Alpaca and Robinhood allowlists, rate limits, usage meter skeleton, health, upstream gateway with edge cache and coalescing, pairing and Settings UI. Verified end to end against `wrangler dev` and in a browser. |
-| M2 Shell | (see git log: "M2 shell") | Themes (classic, modern dark, light, color-blind), IBM Plex Mono, free grid (drag, resize, snap, min/max, tab-stack, duplicate, lock, pop-out), command line with registry and fuzzy autocomplete, history, cheat sheet, phone layout with bottom tabs, swipe and pull to refresh, PWA manifest and icons, service worker, sync engine (LWW, tombstones, offline outbox, export/import), error boundaries, offline banner, data health skeleton, sticky notes. Verified in a browser at desktop and 375 px phone width. |
+| M2 Shell | 9886054 | Themes (classic, modern dark, light, color-blind), IBM Plex Mono, free grid (drag, resize, snap, min/max, tab-stack, duplicate, lock, pop-out), command line with registry and fuzzy autocomplete, history, cheat sheet, phone layout with bottom tabs, swipe and pull to refresh, PWA manifest and icons, service worker, sync engine (LWW, tombstones, offline outbox, export/import), error boundaries, offline banner, data health skeleton, sticky notes. Verified in a browser at desktop and 375 px phone width. |
 
 ## In progress
 
