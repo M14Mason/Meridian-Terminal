@@ -13,6 +13,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'no-console': ['error', { allow: ['warn', 'error'] }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
       // Hard rule 2.4: no order placement code paths. Catch obvious names early.
       'no-restricted-syntax': [
         'error',

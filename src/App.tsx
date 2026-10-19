@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
-import { APP_NAME, DISCLAIMER } from './config';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { getToken } from './lib/api';
 import { PairingScreen } from './features/pairing/PairingScreen';
-import { DevicesSettings } from './features/settings/DevicesSettings';
-import { KeysSettings } from './features/settings/KeysSettings';
-import { UsageSettings } from './features/settings/UsageSettings';
 import './App.css';
+
+// The terminal shell is its own chunk, so an unpaired visitor downloads only the pairing screen.
+const Shell = lazy(() => import('./shell/Shell').then((m) => ({ default: m.Shell })));
 
 function usePaired(): boolean {
   const [paired, setPaired] = useState(() => Boolean(getToken()));
@@ -21,20 +20,12 @@ function usePaired(): boolean {
   return paired;
 }
 
-// M1 shell: pairing gate plus Settings. M2 replaces the paired view with the full terminal.
 export function App() {
   const paired = usePaired();
   if (!paired) return <PairingScreen />;
   return (
-    <main className="boot">
-      <h1 className="boot__title">{APP_NAME.toUpperCase()}</h1>
-      <p className="boot__line">
-        STATUS <span className="boot__ok">PAIRED</span>
-      </p>
-      <DevicesSettings />
-      <KeysSettings />
-      <UsageSettings />
-      <footer className="boot__footer">{DISCLAIMER}</footer>
-    </main>
+    <Suspense fallback={<div className="skeleton skeleton--full" aria-busy="true" />}>
+      <Shell />
+    </Suspense>
   );
 }

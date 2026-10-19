@@ -141,3 +141,42 @@ describe('usage meter', () => {
     expect(row?.usd).toBeCloseTo(0.0003);
   });
 });
+
+describe('sync', () => {
+  const rec = (id: string, u: number, v: unknown) => ({ c: 'notes', id, u, d: 'spoofed', v });
+  it('round-trips and forces the writer id', () => {
+    const r = v.sync('devA', 0, [rec('AAPL', t, { text: 'hi' })]);
+    expect(r.records).toHaveLength(1);
+    expect(r.records[0]).toMatchObject({ id: 'AAPL', d: 'devA', v: { text: 'hi' } });
+    expect(v.sync('devB', r.seq, []).records).toHaveLength(0);
+  });
+  it('last write wins and stale writes are ignored', () => {
+    v.sync('devA', 0, [rec('n1', t + 10, 'new')]);
+    v.sync('devB', 0, [rec('n1', t + 5, 'old')]);
+    expect(v.sync('devC', 0, []).records[0]?.v).toBe('new');
+  });
+  it('propagates tombstones and prunes them after 90 days', () => {
+    v.sync('devA', 0, [rec('n1', t, 'x')]);
+    v.sync('devA', 0, [{ c: 'notes', id: 'n1', u: t + 1, d: 'devA', x: 1 }]);
+    expect(v.sync('devB', 0, []).records[0]).toMatchObject({ id: 'n1', x: 1 });
+    t += 91 * 86_400_000;
+    expect(v.sync('devB', 0, []).records).toHaveLength(0);
+  });
+  it('clamps future clocks', () => {
+    v.sync('devA', 0, [rec('n1', t + 10 * 365 * 86_400_000, 'future')]);
+    t += 10 * 60_000;
+    v.sync('devB', 0, [rec('n1', t, 'now')]);
+    expect(v.sync('devC', 0, []).records[0]?.v).toBe('now');
+  });
+  it('drops invalid records and pages results', () => {
+    const many = Array.from({ length: 250 }, (_, i) => rec(`n${i}`, t, i));
+    v.sync('devA', 0, [...many.slice(0, 200), { c: 'evil', id: 'x', u: 1, d: 'd', v: 1 }]);
+    v.sync('devA', 0, many.slice(200));
+    const p1 = v.sync('devB', 0, []);
+    expect(p1.records).toHaveLength(200);
+    expect(p1.more).toBe(true);
+    const p2 = v.sync('devB', p1.seq, []);
+    expect(p2.records).toHaveLength(50);
+    expect(p2.more).toBe(false);
+  });
+});

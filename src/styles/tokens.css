@@ -1,3 +1,19 @@
+/* Self-hosted IBM Plex Mono, Latin subset (9.2). OFL 1.1. */
+@font-face {
+  font-family: 'Plex Mono';
+  src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plex Mono';
+  src: url('/fonts/ibm-plex-mono-latin-600-normal.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Theme tokens (BUILD_PROMPT 9.1). Themes change tokens only, never layout. */
 :root,
 :root[data-theme='classic'] {
@@ -12,6 +28,9 @@
   --hairline: #262626;
   --radius: 0px;
   --focus: #4aa3ff;
+  --head-bg: #1a1a1a;
+  --select-bg: #fa7900;
+  --select-fg: #000000;
 }
 :root[data-theme='dark'] {
   --bg: #0b0b0b;
@@ -25,6 +44,9 @@
   --hairline: #2a2a2a;
   --radius: 6px;
   --focus: #5b9dff;
+  --head-bg: #1c1c1c;
+  --select-bg: #5b9dff;
+  --select-fg: #0b0b0b;
 }
 :root[data-theme='light'] {
   --bg: #ffffff;
@@ -38,6 +60,9 @@
   --hairline: #cfcfcf;
   --radius: 4px;
   --focus: #0050b3;
+  --head-bg: #e6e6e6;
+  --select-bg: #0050b3;
+  --select-fg: #ffffff;
 }
 /* Color-blind-safe up/down (blue/orange), toggled in Settings. */
 :root[data-cb='1'] {
@@ -50,7 +75,7 @@ html, body, #root { height: 100%; margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-family: 'Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   -webkit-text-size-adjust: 100%;

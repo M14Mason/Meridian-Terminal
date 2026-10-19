@@ -4,6 +4,7 @@
 
 import type { AddDeviceCode, DeviceInfo, UsageRow } from '../../shared/api-types';
 import { KEY_NAMES, type KeyMeta } from '../../shared/keys';
+import { isNewer, MAX_BATCH, TOMBSTONE_TTL_MS, validateRecord, type Collection, type SyncRecord, type SyncResponse } from '../../shared/sync';
 import { decrypt, encrypt, hmacHex, randomId, randomSixDigits, randomToken, sha256Hex, timingSafeEqual } from './crypto';
 
 export type SqlValue = string | number | null | ArrayBuffer;
@@ -56,6 +57,11 @@ CREATE TABLE IF NOT EXISTS usage (
   usd REAL NOT NULL DEFAULT 0, calls INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (day, feature, model));
 CREATE TABLE IF NOT EXISTS audit (at INTEGER NOT NULL, event TEXT NOT NULL, detail TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sync (
+  c TEXT NOT NULL, id TEXT NOT NULL, u INTEGER NOT NULL, d TEXT NOT NULL, x INTEGER NOT NULL DEFAULT 0,
+  v TEXT, seq INTEGER NOT NULL, PRIMARY KEY (c, id));
+CREATE INDEX IF NOT EXISTS sync_seq ON sync (seq);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, n INTEGER NOT NULL);
 `;
 
 export function cleanDeviceName(raw: unknown): string {
@@ -289,6 +295,55 @@ export class VaultCore {
       usd: Number(r.usd),
       calls: Number(r.calls),
     }));
+  }
+
+  // ---------- Sync (section 7) ----------
+
+  private nextSeq(): number {
+    this.sql.exec("INSERT INTO meta (k, n) VALUES ('seq', 1) ON CONFLICT(k) DO UPDATE SET n = n + 1");
+    return Number(this.rows("SELECT n FROM meta WHERE k = 'seq'")[0]?.n ?? 1);
+  }
+
+  /**
+   * Applies incoming changes (last write wins per item) and returns everything the caller
+   * has not seen since `since`. The writer id is forced to the authenticated device.
+   */
+  sync(deviceId: string, since: unknown, changes: unknown): SyncResponse {
+    const sinceSeq = typeof since === 'number' && Number.isFinite(since) && since >= 0 ? Math.floor(since) : 0;
+    const list = Array.isArray(changes) ? changes.slice(0, MAX_BATCH) : [];
+    const maxFuture = this.now() + 5 * 60_000;
+    for (const raw of list) {
+      const rec = validateRecord(raw);
+      if (!rec) continue;
+      rec.d = deviceId;
+      // A device clock far in the future would win every conflict forever. Clamp it.
+      rec.u = Math.min(rec.u, maxFuture);
+      const cur = this.rows('SELECT u, d FROM sync WHERE c = ? AND id = ?', rec.c, rec.id)[0];
+      if (cur && !isNewer(rec, { u: Number(cur.u), d: String(cur.d) })) continue;
+      this.sql.exec(
+        'INSERT INTO sync (c, id, u, d, x, v, seq) VALUES (?, ?, ?, ?, ?, ?, ?) ' +
+          'ON CONFLICT(c, id) DO UPDATE SET u = excluded.u, d = excluded.d, x = excluded.x, v = excluded.v, seq = excluded.seq',
+        rec.c,
+        rec.id,
+        rec.u,
+        rec.d,
+        rec.x ? 1 : 0,
+        rec.x ? null : JSON.stringify(rec.v),
+        this.nextSeq(),
+      );
+    }
+    this.sql.exec('DELETE FROM sync WHERE x = 1 AND u < ?', this.now() - TOMBSTONE_TTL_MS);
+    const out = this.rows('SELECT c, id, u, d, x, v, seq FROM sync WHERE seq > ? ORDER BY seq LIMIT ?', sinceSeq, MAX_BATCH + 1);
+    const more = out.length > MAX_BATCH;
+    const page = out.slice(0, MAX_BATCH);
+    const records = page.map((r): SyncRecord => {
+      const rec: SyncRecord = { c: String(r.c) as Collection, id: String(r.id), u: Number(r.u), d: String(r.d) };
+      if (Number(r.x) === 1) rec.x = 1;
+      else rec.v = JSON.parse(String(r.v));
+      return rec;
+    });
+    const seq = page.length ? Number(page[page.length - 1]!.seq) : Math.max(sinceSeq, Number(this.rows("SELECT n FROM meta WHERE k = 'seq'")[0]?.n ?? 0));
+    return { records, seq, more };
   }
 
   // ---------- Audit ----------

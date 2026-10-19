@@ -1,0 +1,137 @@
+/* Terminal shell (9.3 to 9.6). Dense, keyboard-first. Colors only from theme tokens. */
+
+.shell { display: flex; flex-direction: column; height: 100%; }
+
+.topbar {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  border-bottom: 1px solid var(--hairline); background: var(--panel); position: relative; z-index: 5000;
+}
+.topbar > button { min-height: 26px; padding: 2px 8px; }
+.brand { color: var(--accent); font-weight: 600; letter-spacing: 0.08em; }
+.topbar__menu { position: relative; }
+
+/* Command line */
+.cmd { position: relative; flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cmd__prompt { color: var(--accent); }
+.cmd__input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--hairline);
+  text-transform: uppercase; font-size: 14px; padding: 3px 6px; min-height: 26px;
+}
+.cmd__input:focus { border-color: var(--accent); outline: none; }
+.cmd__go { color: var(--select-fg); background: var(--select-bg); border-color: var(--select-bg); font-weight: 600; min-height: 26px; padding: 2px 10px; }
+.cmd__error { position: absolute; top: 100%; left: 14px; color: var(--down); background: var(--panel); border: 1px solid var(--down); padding: 2px 6px; z-index: 6001; }
+.cmd__list {
+  position: absolute; top: 100%; left: 14px; right: 40px; margin: 2px 0 0; padding: 0; list-style: none;
+  background: var(--panel); border: 1px solid var(--accent); z-index: 6000; max-height: 60vh; overflow: auto;
+}
+.cmd__opt { display: flex; gap: 10px; padding: 3px 8px; cursor: pointer; }
+.cmd__opt--sel, .cmd__opt:hover { background: var(--select-bg); color: var(--select-fg); }
+.cmd__opt--sel .muted, .cmd__opt:hover .muted { color: var(--select-fg); }
+.cmd__code { min-width: 4.5em; font-weight: 600; }
+.cmd__title { flex: 1; }
+
+/* Status */
+.status { display: flex; gap: 10px; font-size: 11px; white-space: nowrap; }
+.banner { padding: 4px 8px; font-size: 12px; }
+.banner--warn { background: var(--down); color: #000; }
+
+/* Menus */
+.menu {
+  position: absolute; top: 100%; right: 0; list-style: none; margin: 2px 0 0; padding: 2px; min-width: 180px;
+  background: var(--panel); border: 1px solid var(--accent); z-index: 7000;
+}
+.menu--right { right: 0; }
+.menu button { width: 100%; text-align: left; border: 0; background: transparent; min-height: 26px; }
+.menu button:hover { background: var(--select-bg); color: var(--select-fg); }
+.menu__row { display: flex; }
+.menu__row button:last-child { width: auto; }
+
+/* Workspace and frames */
+.workspace { flex: 1; overflow: auto; position: relative; }
+.workspace--max { overflow: hidden; }
+.workspace__canvas { position: relative; min-height: 100%; }
+.workspace__empty { padding: 24px; }
+.frame {
+  position: absolute; display: flex; flex-direction: column; background: var(--panel);
+  border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden;
+}
+.frame--focused { border-color: var(--accent); }
+.frame__head {
+  display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 4px; flex: none;
+  background: var(--head-bg); cursor: grab; user-select: none; touch-action: none; position: relative;
+}
+.frame--locked .frame__head { cursor: default; }
+.frame__tabs { display: flex; gap: 2px; min-width: 0; overflow: hidden; }
+.frame__tab { min-height: 22px; padding: 0 6px; font-size: 12px; white-space: nowrap; touch-action: none; }
+.frame__tab[aria-selected='true'] { background: var(--select-bg); color: var(--select-fg); border-color: var(--select-bg); }
+.frame__title { flex: 1; color: var(--text-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frame__btn { min-height: 22px; min-width: 22px; padding: 0 4px; font-size: 12px; }
+.frame__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.frame__link { min-height: 22px; min-width: 22px; padding: 0 4px; font-size: 12px; border: 1px solid var(--hairline); background: transparent; }
+.link--none { color: var(--text-dim); }
+.link--amber { color: #ffb800; }
+.link--red { color: #ff3b30; }
+.link--green { color: #00c805; }
+.link--blue { color: #4aa3ff; }
+.link--violet { color: #b07cff; }
+.frame__body { flex: 1; overflow: auto; padding: 6px 8px; min-height: 0; }
+.frame__resize { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, var(--hairline) 50%); }
+.frame .menu { top: 32px; }
+
+/* Shared panel bits */
+.grid-table { border-collapse: collapse; width: 100%; }
+.grid-table th, .grid-table td { text-align: left; padding: 2px 6px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.grid-table th { color: var(--text-dim); font-weight: 400; position: sticky; top: 0; background: var(--panel); }
+.link-btn { border: 0; background: none; color: var(--link); padding: 0; min-height: 0; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+.help__search { margin-bottom: 6px; }
+.panel-error { display: flex; flex-direction: column; gap: 6px; padding: 8px; }
+.planned { display: flex; flex-direction: column; gap: 6px; }
+.planned__code { color: var(--accent); font-size: 18px; font-weight: 600; }
+.notes { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.notes__text { flex: 1; min-height: 120px; resize: none; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--hairline); padding: 6px; font-size: 16px; }
+.notes__list { display: flex; gap: 8px; flex-wrap: wrap; }
+.about ul { padding-left: 18px; }
+.about h3 { color: var(--accent); font-size: 13px; }
+.settings { display: flex; flex-direction: column; }
+.toggle { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.toggle input { width: auto; min-height: 0; }
+.toggle select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--hairline); }
+
+/* Overlays */
+.overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 0.7); display: flex; align-items: center; justify-content: center; z-index: 9000; padding: 16px; }
+.overlay__box { background: var(--panel); border: 1px solid var(--accent); padding: 12px 16px; max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.overlay__box h2 { color: var(--accent); font-size: 14px; margin: 0; }
+
+.popout__body { flex: 1; overflow: auto; padding: 8px; }
+
+/* Phone (9.5): one panel at a time, bottom tabs, 16 px gutters, safe areas. */
+.mshell { display: flex; flex-direction: column; height: 100%; overflow-x: hidden; }
+.mshell__top {
+  display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 6px) 16px 6px;
+  background: var(--panel); border-bottom: 1px solid var(--hairline);
+}
+.mshell__cmd { flex: 1; text-align: left; min-height: 40px; color: var(--accent); font-weight: 600; }
+.mshell__pull { display: flex; align-items: flex-end; justify-content: center; font-size: 12px; overflow: hidden; }
+.mshell__body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 16px; overscroll-behavior: contain; }
+.tabbar {
+  display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1px solid var(--hairline); background: var(--panel);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar__btn {
+  border: 0; background: transparent; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; font-size: 10px; color: var(--text-dim); border-radius: 0; padding: 4px 0;
+}
+.tabbar__btn span { font-size: 18px; }
+.tabbar__btn[aria-current='page'] { color: var(--accent); }
+.sheet { position: fixed; inset: 0; background: rgb(0 0 0 / 0.6); z-index: 9000; display: flex; align-items: flex-start; }
+.sheet__box { width: 100%; background: var(--panel); border-bottom: 1px solid var(--accent); padding: calc(env(safe-area-inset-top) + 10px) 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+.sheet .cmd__input { font-size: 16px; min-height: 40px; }
+.sheet .cmd__go { min-height: 40px; }
+.sheet .cmd__list { left: 0; right: 0; }
+.mshell .grid-table td, .mshell .grid-table th { white-space: normal; }
+.mshell .settings__table td { word-break: break-word; }
+
+/* Low power: no shimmer, no transitions. */
+:root[data-lowpower='1'] .skeleton { animation: none; }

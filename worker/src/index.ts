@@ -9,6 +9,8 @@ import type { Result } from './vault';
 export { Vault } from './vault';
 
 const MAX_BODY = 16 * 1024;
+// Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
+const SYNC_MAX_BODY = 1024 * 1024;
 
 function allowedOrigins(env: Env): Set<string> {
   return new Set(env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean));
@@ -43,11 +45,11 @@ function fromResult<T>(r: Result<T>, map: (d: T) => unknown = (d) => d): Respons
   return r.ok ? json(map(r.data)) : json({ error: r.error }, r.status);
 }
 
-async function readJson(req: Request): Promise<Record<string, unknown> | null> {
+async function readJson(req: Request, max = MAX_BODY): Promise<Record<string, unknown> | null> {
   const len = Number(req.headers.get('content-length') ?? '0');
-  if (len > MAX_BODY) return null;
+  if (len > max) return null;
   const text = await req.text();
-  if (text.length > MAX_BODY) return null;
+  if (text.length > max) return null;
   try {
     const v: unknown = JSON.parse(text || '{}');
     return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
@@ -124,6 +126,12 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
       return fromResult(await vault.putKey(name, body.value), () => ({ ok: true }));
     }
     if (method === 'DELETE') return fromResult(await vault.deleteKey(name), () => ({ ok: true }));
+  }
+
+  if (path === '/api/sync' && method === 'POST') {
+    const body = await readJson(req, SYNC_MAX_BODY);
+    if (!body) return json({ error: 'bad request' }, 400);
+    return fromResult(await vault.sync(deviceId, body.since, body.changes));
   }
 
   if (path === '/api/usage' && method === 'GET') {
