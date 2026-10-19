@@ -83,7 +83,7 @@ export function relevantText(text: string, maxChars = 18000): { body: string; pr
 }
 
 // ---------- Graph ----------
-export interface Edge { from: string; to: string; kind: 'supplies'; what: string; share: number | null; conf: number; ev: string; src: string; via: string }
+export interface Edge { from: string; to: string; kind: 'supplies' | 'partner'; what: string; share: number | null; conf: number; ev: string; src: string; via: string }
 
 /**
  * Directed "supplies" edges from all shards. A supplier listed by A becomes supplier->A; a customer
@@ -94,7 +94,7 @@ export function edges(shards: Shard[]): Edge[] {
   for (const sh of shards) {
     for (const r of sh.rels) {
       const other = r.t || r.n;
-      const base = { kind: 'supplies' as const, what: r.what, share: r.share ?? null, conf: r.conf, ev: r.ev, src: r.src, via: sh.t };
+      const base = { kind: (r.k === 'partner' ? 'partner' : 'supplies') as Edge['kind'], what: r.what, share: r.share ?? null, conf: r.conf, ev: r.ev, src: r.src, via: sh.t };
       if (r.k === 'supplier') out.push({ ...base, from: other, to: sh.t });
       else if (r.k === 'customer') out.push({ ...base, from: sh.t, to: other });
       else out.push({ ...base, from: sh.t, to: other });
@@ -185,7 +185,7 @@ export function forceLayout(ids: string[], links: [string, string][], iters = 30
   return new Map(ids.map((id, i) => [id, p[i] as [number, number, number]]));
 }
 
-/** Compact edge index served as public/supply/edges.json: [from, to, what, share, conf, via]. */
-export type EdgeRow = [string, string, string, number | null, number, string];
-export const toRows = (e: Edge[]): EdgeRow[] => e.map((x) => [x.from, x.to, x.what, x.share, x.conf, x.via]);
-export const fromRows = (rows: EdgeRow[]): Edge[] => rows.map(([from, to, what, share, conf, via]) => ({ from, to, kind: 'supplies', what, share, conf, ev: '', src: '', via }));
+/** Compact edge index served as public/supply/edges.json: [from, to, what, share, conf, via, kind?]. */
+export type EdgeRow = [string, string, string, number | null, number, string, ('p' | undefined)?];
+export const toRows = (e: Edge[]): EdgeRow[] => e.map((x) => (x.kind === 'partner' ? [x.from, x.to, x.what, x.share, x.conf, x.via, 'p'] : [x.from, x.to, x.what, x.share, x.conf, x.via]));
+export const fromRows = (rows: EdgeRow[]): Edge[] => rows.map(([from, to, what, share, conf, via, k]) => ({ from, to, kind: k === 'p' ? 'partner' : 'supplies', what, share, conf, ev: '', src: '', via }));

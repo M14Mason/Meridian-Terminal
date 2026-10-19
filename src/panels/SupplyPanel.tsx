@@ -1,8 +1,11 @@
-// SPLC: supply chain map (BUILD_PROMPT 15). Who a company buys from and sells to, from SEC filings, as a
-// 3D network plus an accessible table. Top 1,000 extracted in advance; anything else on demand with Sonnet.
+// SPLC: supply chain map (BUILD_PROMPT 15). Who a company buys from and sells to, from SEC filings.
+// Default view is the classic terminal layout (suppliers left, customers right, peers below); 3D network
+// and a table are alternatives. Top 500 extracted in advance; anything else on demand with Sonnet.
 import { useMemo, useState } from 'react';
-import { disrupt, edges as shardEdges, neighborhood, type Edge, type Shard } from '../../shared/supply';
 import { AI_LABEL } from '../../shared/ai';
+import { disrupt, edges as shardEdges, neighborhood, type Edge, type Rel, type Shard } from '../../shared/supply';
+import { quotes } from '../data/adapters/alpaca';
+import * as fh from '../data/adapters/finnhub';
 import { prepareOnDemand, runOnDemand, staticEdges, staticShard } from '../data/adapters/supply';
 import { useData } from '../data/useData';
 import { fmt } from '../lib/format';
@@ -10,42 +13,79 @@ import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 import { sync, useCollection } from '../state/sync';
 import { SupplyGraph, type GLink, type GNode } from '../three/SupplyGraph';
+import { SupplyChart, type Tile } from './SupplyChart';
+import { criticalReason } from './supplyCritical';
 
-const KIND = { supplier: 'SUPPLIER', customer: 'CUSTOMER', partner: 'PARTNER' } as const;
+type Sort = 'share' | 'critical' | 'conf' | 'name';
+const isTicker = (id: string) => /^[A-Z][A-Z.]{0,6}$/.test(id);
+const short = (s: string, n = 26) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 export default function SupplyPanel({ security, run }: PanelProps) {
   const sym = (security ?? 'NVDA').toUpperCase();
+  const [view, setView] = useState<'chart' | 'table' | '3d'>('chart');
   const [hops, setHops] = useState(1);
-  const [view, setView] = useState<'3d' | 'table'>('3d');
+  const [sort, setSort] = useState<Sort>('critical');
   const [sel, setSel] = useState<string | null>(null);
-  const [shock, setShock] = useState<string | null>(null);
+  const [shock, setShock] = useState(false);
   const [minConf, setMinConf] = useState(0);
   const [od, setOd] = useState<{ busy?: string; err?: string; note?: string }>({});
   const base = useData('splc:edges', async () => ({ data: await staticEdges(), fetchedAt: Date.now(), fromCache: false }), { source: 'SEC filings (Meridian extraction)', everyMs: 6 * 3600_000 });
   const mine = useCollection<Shard>('supply');
   const root = useData(`splc:shard:${sym}`, async () => ({ data: await staticShard(sym), fetchedAt: Date.now(), fromCache: false }), { source: 'SEC filings' });
-  const odShard = mine.find((x) => x.id === sym)?.value ?? null;
-  const shard = root.data ?? odShard;
+  const peersSt = useData(`splc:peers:${sym}`, () => fh.peers(sym), { source: 'Finnhub peers' });
+  const shard = root.data ?? mine.find((x) => x.id === sym)?.value ?? null;
 
   const all = useMemo<Edge[]>(() => {
     const extra = shardEdges(mine.map((x) => x.value).filter((s) => !base.data?.edges.some((e) => e.via === s.t)));
     return [...(base.data?.edges ?? []), ...extra].filter((e) => e.conf >= minConf);
   }, [base.data, mine, minConf]);
-  const hood = useMemo(() => neighborhood(all, sym, hops), [all, sym, hops]);
-  const impact = useMemo(() => (shock ? disrupt(all, shock, hops + 1) : null), [all, shock, hops]);
+  const hood = useMemo(() => neighborhood(all, sym, view === '3d' ? hops : 1), [all, sym, hops, view]);
+  const impact = useMemo(() => (shock ? disrupt(all, sym, 3) : null), [all, sym, shock]);
+
+  // Sort counterparties into the three groups, using this company's own disclosures first.
+  const groups = useMemo(() => {
+    const relOf = (id: string): Rel | undefined => shard?.rels.find((r) => (r.t || r.n) === id);
+    const sup = new Map<string, Edge>(), cus = new Map<string, Edge>(), par = new Map<string, Edge>();
+    for (const e of hood.edges) {
+      const other = e.to === sym ? e.from : e.from === sym ? e.to : null;
+      if (!other || other === sym) continue;
+      if (e.kind === 'partner' || relOf(other)?.k === 'partner') par.set(other, e);
+      else (e.to === sym ? sup : cus).set(other, e);
+    }
+    return { sup, cus, par, relOf };
+  }, [hood, sym, shard]);
+
+  const tickersShown = useMemo(() => [...new Set([...groups.sup.keys(), ...groups.cus.keys(), ...groups.par.keys(), ...(peersSt.data ?? []).filter((p) => p !== sym).slice(0, 8)].filter(isTicker))].slice(0, 80), [groups, peersSt.data, sym]);
+  const q = useData(tickersShown.length ? `splc:q:${sym}:${tickersShown.length}` : null, () => quotes(tickersShown), { source: 'Alpaca quotes', everyMs: 60_000 });
+
+  const tiles = useMemo(() => {
+    const mk = (id: string, e: Edge, role: 'supplier' | 'customer' | 'partner'): Tile => {
+      const r = groups.relOf(id);
+      const own = e.via === sym;
+      const share = own ? e.share : null;
+      const crit = r ? criticalReason({ k: r.k, share: r.share, ev: r.ev, what: r.what }) : null;
+      const theirs = !own && e.share != null ? `${sym} = ${fmt(e.share, 0)}% of their ${role === 'supplier' ? 'revenue' : 'purchases'}` : null;
+      const line = share != null ? `${role === 'customer' ? 'Rev' : 'Spend'}: ${fmt(share, 1)}%  ·  conf ${e.conf}` : theirs ?? `${short(e.what, 20)} · conf ${e.conf}`;
+      return { id, label: r?.n && r.t ? `${r.n} (${r.t})` : id, ticker: isTicker(id) ? id : r?.t ?? null, line, share: share ?? e.share, conf: e.conf, chg: isTicker(id) ? q.data?.[id]?.changePct ?? null : null, impact: impact?.get(id), crit };
+    };
+    const order = (xs: Tile[]) => [...xs].sort((a, b) => sort === 'name' ? a.label.localeCompare(b.label) : sort === 'conf' ? b.conf - a.conf : sort === 'critical' ? Number(Boolean(b.crit)) - Number(Boolean(a.crit)) || (b.share ?? -1) - (a.share ?? -1) : (b.share ?? -1) - (a.share ?? -1));
+    const peers: Tile[] = (peersSt.data ?? []).filter((p) => p !== sym).slice(0, 8).map((p) => ({ id: `peer:${p}`, label: p, ticker: p, line: q.data?.[p] ? `${fmt(q.data[p]!.price)}  ${fmt(q.data[p]!.changePct, 2)}%` : 'peer', share: null, conf: 1, chg: q.data?.[p]?.changePct ?? null }));
+    return {
+      suppliers: order([...groups.sup].map(([id, e]) => mk(id, e, 'supplier'))),
+      customers: order([...groups.cus].map(([id, e]) => mk(id, e, 'customer'))),
+      partners: order([...groups.par].map(([id, e]) => mk(id, e, 'partner'))),
+      peers,
+    };
+  }, [groups, q.data, impact, sort, sym, peersSt.data]);
+
   const graph = useMemo(() => {
     const deg = new Map<string, number>();
     hood.edges.forEach((e) => { deg.set(e.from, (deg.get(e.from) ?? 0) + 1); deg.set(e.to, (deg.get(e.to) ?? 0) + 1); });
-    const role = (id: string): GNode['role'] => {
-      if (id === sym) return 'root';
-      const e = hood.edges.find((x) => (x.from === id && x.to === sym) || (x.to === id && x.from === sym));
-      if (!e) return 'other';
-      return e.via === sym && shard?.rels.find((r) => (r.t || r.n) === id)?.k === 'partner' ? 'partner' : e.from === id ? 'supplier' : 'customer';
-    };
+    const role = (id: string): GNode['role'] => (id === sym ? 'root' : groups.sup.has(id) ? 'supplier' : groups.cus.has(id) ? 'customer' : groups.par.has(id) ? 'partner' : 'other');
     const nodes: GNode[] = [...hood.nodes.keys()].map((id) => ({ id, role: role(id), size: deg.get(id) ?? 1, impact: impact?.get(id) }));
     const links: GLink[] = hood.edges.map((e) => ({ from: e.from, to: e.to, w: e.share ?? 1 }));
     return { nodes, links };
-  }, [hood, sym, shard, impact]);
+  }, [hood, sym, groups, impact]);
 
   const extract = async () => {
     setOd({ busy: 'Reading the latest annual report from SEC...' });
@@ -61,60 +101,88 @@ export default function SupplyPanel({ security, run }: PanelProps) {
     }
   };
 
-  const selEdges = sel ? hood.edges.filter((e) => e.from === sel || e.to === sel) : [];
+  const pick = (t: Tile) => setSel(t.id);
+  const selTile = [...tiles.suppliers, ...tiles.customers, ...tiles.partners, ...tiles.peers].find((t) => t.id === sel);
+  const selRel = sel ? groups.relOf(sel.replace(/^peer:/, '')) : undefined;
+  const selEdges = sel ? all.filter((e) => (e.from === sel && e.to === sym) || (e.to === sel && e.from === sym)) : [];
+  const nCrit = [...tiles.suppliers, ...tiles.customers].filter((t) => t.crit).length;
+  const custShare = [...groups.cus.values()].filter((e) => e.via === sym && e.share != null).reduce((a, e) => a + e.share!, 0);
   const covered = Boolean(shard);
-  const isTicker = (id: string) => /^[A-Z][A-Z.]{0,6}$/.test(id);
+
   return (
     <div>
-      <div className="toolbar">
+      <div className="toolbar splc-bar">
         <strong className="accent">{sym}</strong>
-        {[1, 2, 3].map((h) => <button key={h} aria-pressed={hops === h} onClick={() => setHops(h)}>{h} HOP{h > 1 ? 'S' : ''}</button>)}
-        <button aria-pressed={view === '3d'} onClick={() => setView('3d')}>3D</button>
-        <button aria-pressed={view === 'table'} onClick={() => setView('table')}>TABLE</button>
-        <label className="muted">min confidence <select value={minConf} onChange={(e) => setMinConf(Number(e.target.value))}>{[0, 0.6, 0.8, 0.9].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-        <button aria-pressed={Boolean(shock)} onClick={() => setShock(shock ? null : sel ?? sym)}>{shock ? `CLEAR DISRUPTION (${shock})` : `DISRUPT ${sel ?? sym}`}</button>
+        <span className="muted">Show as</span>
+        {(['chart', 'table', '3d'] as const).map((v) => <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{v === '3d' ? '3D' : v.toUpperCase()}</button>)}
+        <span className="muted">Sort by</span>
+        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
+          <option value="critical">Critical first</option><option value="share">Quantified exposure</option><option value="conf">Confidence</option><option value="name">Name</option>
+        </select>
+        <label className="muted">Min conf <select value={minConf} onChange={(e) => setMinConf(Number(e.target.value))}>{[0, 0.6, 0.8, 0.9].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+        {view === '3d' && [1, 2, 3].map((h) => <button key={h} aria-pressed={hops === h} onClick={() => setHops(h)}>{h} HOP{h > 1 ? 'S' : ''}</button>)}
+        <button aria-pressed={shock} onClick={() => setShock((s) => !s)}>{shock ? 'CLEAR DISRUPTION' : `DISRUPT ${sym}`}</button>
       </div>
       <DataStatus state={base} />
-      {base.data && <p className="muted">{base.data.companies} companies extracted so far (target: the 1,000 largest), plus {mine.length} on demand. {hood.nodes.size - 1} linked nodes within {hops} hop{hops > 1 ? 's' : ''}.</p>}
       {!covered && (
         <p>
-          <span className="badge">NOT EXTRACTED</span> {sym} is not in the extracted set yet{hood.edges.length ? `, but ${hood.edges.length} links come from other companies' filings` : ''}.{' '}
+          <span className="badge">NOT EXTRACTED</span> {sym} is outside the extracted set{hood.edges.length ? `; ${hood.edges.length} links come from other companies' filings` : ''}.{' '}
           <button disabled={Boolean(od.busy)} onClick={() => void extract()}>{od.busy ? 'WORKING...' : 'EXTRACT WITH SONNET'}</button>
         </p>
       )}
       {od.busy && <p className="muted">{od.busy}</p>}
       {od.err && <p className="down">{od.err}</p>}
       {od.note && <p className="up">{od.note}</p>}
-      {shock && <p className="down"><span className="badge">ESTIMATE</span> Disruption at {shock}: red = estimated knock-on exposure, using disclosed revenue shares (unknown shares count as 5%), halving per hop. A rough model, not a forecast.</p>}
+      {shock && <p className="down"><span className="badge">ESTIMATE</span> If {sym} stopped: tiles turn red by estimated knock-on exposure (disclosed shares, unknown counts as 5%, halving per hop). A rough model, not a forecast.</p>}
+
+      {view === 'chart' && (
+        <SupplyChart
+          center={{ ticker: sym, name: shard?.name ?? sym, lines: [
+            `Suppliers ${tiles.suppliers.length}  ·  Customers ${tiles.customers.length}`,
+            `Critical links: ${nCrit}`,
+            custShare > 0 ? `Customer revenue quantified: ${fmt(custShare, 1)}%` : 'Customer revenue: not quantified',
+            shard ? `${shard.filing.form} ${shard.filing.date}` : 'via other filings only',
+          ] }}
+          suppliers={tiles.suppliers} customers={tiles.customers} partners={tiles.partners} peers={tiles.peers}
+          selected={sel} onPick={pick}
+        />
+      )}
       {view === '3d' && graph.nodes.length > 1 && <SupplyGraph nodes={graph.nodes} links={graph.links} selected={sel} onSelect={setSel} />}
-      {graph.nodes.length <= 1 && <p className="muted">No relationships found yet for {sym}.</p>}
-      {view === '3d' && graph.nodes.length > 1 && <p className="muted"><span style={{ color: '#4aa3ff' }}>●</span> supplier <span style={{ color: '#4af6c3' }}>●</span> customer <span style={{ color: '#b07cff' }}>●</span> partner <span style={{ color: '#8a8a8a' }}>●</span> further hops. Dots flow from supplier to customer. Click a node.</p>}
-      {sel && (
+      {view !== 'table' && <p className="muted">Tile color: today&apos;s move (green up, red down, grey not listed). <span style={{ color: '#ff433d' }}>CRITICAL</span> = the filing says sole or single source, depends or relies on it, a limited number of suppliers, or a share of 10% or more. Click a tile.</p>}
+
+      {selTile && (
         <div className="ai-block">
-          <strong className="accent">{sel}</strong>{' '}
-          {isTicker(sel) && <>{['SPLC', 'DES', 'GP', 'CF'].map((c) => <button key={c} className="link-btn" onClick={() => run(`${sel} ${c}`)}>{c}</button>)}</>}
-          <ul style={{ margin: 0, paddingLeft: 18 }}>{selEdges.map((e, i) => <li key={i}>{e.from} supplies {e.to}: {e.what}{e.share != null ? ` (${fmt(e.share, 1)}%)` : ''} <span className="muted">conf {e.conf}, from {e.via}&apos;s filing</span></li>)}</ul>
+          <strong className="accent">{selTile.label}</strong>{' '}
+          {selTile.ticker && ['SPLC', 'DES', 'GP', 'CF'].map((c) => <button key={c} className="link-btn" onClick={() => run(`${selTile.ticker} ${c}`, { replace: c === 'SPLC' })}>{c}</button>)}
+          {selTile.crit && <p className="down"><span className="badge">CRITICAL</span> {selTile.crit}</p>}
+          {selRel && <p>&ldquo;{selRel.ev}&rdquo; <span className="muted">({selRel.what}, conf {selRel.conf})</span> <a href={selRel.src} target="_blank" rel="noreferrer noopener">source filing</a></p>}
+          {!selRel && selEdges.map((e, i) => <p key={i} className="muted">From {e.via}&apos;s filing: {e.from} supplies {e.to} ({e.what}{e.share != null ? `, ${fmt(e.share, 1)}%` : ''}). Open {e.via} SPLC for the quote.</p>)}
+          {sel?.startsWith('peer:') && <p className="muted">Peer company (Finnhub peer list), not a disclosed relationship.</p>}
         </div>
       )}
-      {(view === 'table' || shard) && shard && (
+
+      {(view === 'table' || covered) && shard && (
         <>
           <h4 className="accent" style={{ fontSize: 12, margin: '8px 0 2px' }}>{shard.name}: DISCLOSED RELATIONSHIPS ({shard.filing.form} {shard.filing.date})</h4>
           <table className="grid-table">
-            <thead><tr><th>Counterparty</th><th>Role</th><th>What</th><th className="num">Share</th><th className="num">Conf</th><th>Evidence</th></tr></thead>
-            <tbody>{shard.rels.map((r, i) => <tr key={i}><td>{r.t ? <button className="link-btn" onClick={() => run(`${r.t} SPLC`)}>{r.n} ({r.t})</button> : r.n}</td><td className={r.k === 'supplier' ? '' : r.k === 'customer' ? 'up' : 'muted'}>{KIND[r.k]}</td><td style={{ whiteSpace: 'normal' }}>{r.what}</td><td className="num">{r.share != null ? `${fmt(r.share, 1)}%` : '-'}</td><td className="num">{r.conf}</td><td style={{ whiteSpace: 'normal', maxWidth: 300 }} className="muted">&ldquo;{r.ev}&rdquo; <a href={r.src} target="_blank" rel="noreferrer noopener">source</a></td></tr>)}</tbody>
+            <thead><tr><th>Counterparty</th><th>Role</th><th>What</th><th className="num">Share</th><th className="num">Conf</th><th>Critical</th><th>Evidence</th></tr></thead>
+            <tbody>{shard.rels.map((r, i) => { const c = criticalReason(r); return <tr key={i}><td>{r.t ? <button className="link-btn" onClick={() => run(`${r.t} SPLC`, { replace: true })}>{r.n} ({r.t})</button> : r.n}</td><td className={r.k === 'customer' ? 'up' : r.k === 'partner' ? 'muted' : ''}>{r.k.toUpperCase()}</td><td style={{ whiteSpace: 'normal' }}>{r.what}</td><td className="num">{r.share != null ? `${fmt(r.share, 1)}%` : '-'}</td><td className="num">{r.conf}</td><td className="down">{c ?? ''}</td><td style={{ whiteSpace: 'normal', maxWidth: 300 }} className="muted">&ldquo;{r.ev}&rdquo; <a href={r.src} target="_blank" rel="noreferrer noopener">source</a></td></tr>; })}</tbody>
           </table>
           {shard.gaps && <p className="muted"><strong>Not disclosed:</strong> {shard.gaps}</p>}
           {shard.facilities.length > 0 && <p className="muted"><strong>Facilities:</strong> {shard.facilities.map((f) => `${f.type}: ${f.place}`).join('; ')}</p>}
           <p className="muted">Extracted by {shard.model} on {shard.at}.</p>
         </>
       )}
-      {view === 'table' && (
-        <table className="grid-table">
-          <thead><tr><th>Supplier</th><th>Customer</th><th>What</th><th className="num">Share</th><th>Reported by</th></tr></thead>
-          <tbody>{hood.edges.map((e, i) => <tr key={i}><td>{e.from}</td><td>{e.to}</td><td style={{ whiteSpace: 'normal' }}>{e.what}</td><td className="num">{e.share != null ? `${fmt(e.share, 1)}%` : '-'}</td><td className="muted">{e.via}</td></tr>)}</tbody>
-        </table>
+      {view === 'table' && hood.edges.some((e) => e.via !== sym) && (
+        <>
+          <h4 className="accent" style={{ fontSize: 12, margin: '8px 0 2px' }}>LINKS REPORTED BY OTHER COMPANIES</h4>
+          <table className="grid-table">
+            <thead><tr><th>Supplier</th><th>Customer</th><th>What</th><th className="num">Share</th><th>Reported by</th></tr></thead>
+            <tbody>{hood.edges.filter((e) => e.via !== sym).map((e, i) => <tr key={i}><td>{e.from}</td><td>{e.to}</td><td style={{ whiteSpace: 'normal' }}>{e.what}</td><td className="num">{e.share != null ? `${fmt(e.share, 1)}%` : '-'}</td><td className="muted">{e.via}</td></tr>)}</tbody>
+          </table>
+        </>
       )}
-      <div className="disclaimer">Relationships only as disclosed in SEC filings; most companies name few suppliers or customers, so this map is never complete. Every edge has a confidence score and a quoted source. Global map of facilities arrives after geocoding. Extraction and disruption estimates: {AI_LABEL}</div>
+      <div className="disclaimer">Relationships only as disclosed in SEC filings; most companies name few suppliers or customers, so this is never complete. Shares are as reported by the filing company. Peers are Finnhub&apos;s peer list. Extraction and disruption estimates: {AI_LABEL}</div>
     </div>
   );
 }
