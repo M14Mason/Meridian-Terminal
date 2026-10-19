@@ -6,6 +6,8 @@ export interface AiReply<T> { result: T; model: string; version: string; usd: nu
 
 export async function askAi<T>(feature: Feature, input: string, fresh = false): Promise<AiReply<T>> {
   const r = await api<Omit<AiReply<T>, 'input'>>('/api/ai', { method: 'POST', body: { feature, input, fresh } });
+  // Lets the spend banner re-check after paid calls.
+  if (!r.cached) window.dispatchEvent(new Event('meridian:ai-used'));
   return { ...r, label: r.label ?? AI_LABEL, input };
 }
 

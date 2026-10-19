@@ -114,3 +114,17 @@ export function estimateUsd(feature: Feature, inputChars: number): number {
   const s = FEATURES[feature];
   return costUsd(s.model, { input_tokens: Math.ceil(inputChars / 4) + 600, output_tokens: s.maxTokens });
 }
+
+/**
+ * Spend spike check (16.9, warning only, no cap): today's spend vs the average of the previous 14 days.
+ * Warns when today is over 3x the average and over $0.50, or over $5 in any case.
+ */
+export function spendSpike(rows: { day: string; usd: number }[], today: string) {
+  const byDay = new Map<string, number>();
+  for (const r of rows) byDay.set(r.day, (byDay.get(r.day) ?? 0) + r.usd);
+  const t = byDay.get(today) ?? 0;
+  const prev: number[] = [];
+  for (let i = 1; i <= 14; i++) prev.push(byDay.get(new Date(Date.parse(today) - i * 86_400_000).toISOString().slice(0, 10)) ?? 0);
+  const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
+  return { today: t, avg, warn: (t > 3 * avg && t > 0.5) || t > 5 };
+}

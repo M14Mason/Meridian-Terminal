@@ -22,3 +22,18 @@ describe('chain', () => {
     expect(pts.at(-1)!.spy).toBeCloseTo(105);
   });
 });
+
+import { chainWeighted } from './model';
+describe('chainWeighted', () => {
+  it('tracks a weighted portfolio and a 60/40 benchmark', () => {
+    const pts = chainWeighted(
+      [{ month: '2026-10', date: '2026-10-01', holdings: [{ t: 'A', w: 75, px: 10 }, { t: 'B', w: 25, px: 10 }], bench: { SPY: 100, AGG: 100 } }],
+      { A: 12, B: 8, SPY: 110, AGG: 100 },
+      { SPY: { SPY: 1 }, '60/40': { SPY: 0.6, AGG: 0.4 } },
+    );
+    const last = pts.at(-1)!;
+    expect(last.model).toBeCloseTo(110);
+    expect(last.bench.SPY).toBeCloseTo(110);
+    expect(last.bench['60/40']).toBeCloseTo(106);
+  });
+});

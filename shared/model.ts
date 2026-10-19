@@ -47,3 +47,28 @@ export function chain(periods: Period[], live: Record<string, number>, liveSpy: 
   });
   return pts;
 }
+
+/** Weighted variant for CMP: each period holds weights (percent) and entry prices; benchmarks tracked alongside. */
+export interface WPeriod { month: string; date: string; holdings: { t: string; w: number; px: number }[]; bench: Record<string, number>; exit?: Record<string, number>; benchExit?: Record<string, number> }
+
+export function chainWeighted(periods: WPeriod[], live: Record<string, number>, benchW: Record<string, Record<string, number>>) {
+  const sorted = [...periods].sort((a, b) => a.month.localeCompare(b.month));
+  let m = 100;
+  const b: Record<string, number> = Object.fromEntries(Object.keys(benchW).map((k) => [k, 100]));
+  const pts: { date: string; model: number; bench: Record<string, number> }[] = [];
+  sorted.forEach((p, i) => {
+    pts.push({ date: p.date, model: m, bench: { ...b } });
+    const last = i === sorted.length - 1;
+    const exit = last ? live : p.exit ?? {};
+    const bexit = last ? live : p.benchExit ?? {};
+    const tw = p.holdings.reduce((a, h) => a + h.w, 0) || 1;
+    m *= p.holdings.reduce((a, h) => a + (h.w / tw) * ((exit[h.t] ?? h.px) / h.px), 0);
+    for (const [name, ws] of Object.entries(benchW)) {
+      let r = 0, wsum = 0;
+      for (const [t, w] of Object.entries(ws)) { const e = bexit[t], s0 = p.bench[t]; if (e && s0) { r += w * (e / s0); wsum += w; } }
+      b[name] = b[name]! * (wsum ? r / wsum : 1);
+    }
+    if (last) pts.push({ date: 'now', model: m, bench: { ...b } });
+  });
+  return pts;
+}

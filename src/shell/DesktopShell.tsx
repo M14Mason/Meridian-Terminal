@@ -7,7 +7,7 @@ import { CommandLine } from './CommandLine';
 import { EMPTY_LAYOUT, reduce, type Layout } from './layout';
 import { layoutStore } from './layoutStore';
 import { resolveCommand } from './runCommand';
-import { OfflineBanner, StatusBar } from './StatusBar';
+import { OfflineBanner, SpendBanner, StatusBar } from './StatusBar';
 import { TickerTape } from '../panels/TickerTape';
 import { useSettings } from '../state/settings';
 import { Workspace } from './Workspace';
@@ -197,6 +197,7 @@ export function DesktopShell() {
       </div>
       <FavoritesBar onRun={(c) => void run(c, { newFrame: true })} />
       <OfflineBanner />
+      <SpendBanner />
       {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
       <Workspace layout={layout} dispatch={dispatch} run={(c, o) => void run(c, o)} popOut={popOut} />
       {cheat && <CheatSheet onClose={() => setCheat(false)} />}

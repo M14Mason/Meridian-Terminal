@@ -4,7 +4,7 @@ import { CommandLine } from './CommandLine';
 import { PanelHost } from './PanelHost';
 import { AgeBadge, type PanelMeta } from './panelMeta';
 import { resolveCommand } from './runCommand';
-import { OfflineBanner, StatusBar } from './StatusBar';
+import { OfflineBanner, SpendBanner, StatusBar } from './StatusBar';
 import { TickerTape } from '../panels/TickerTape';
 import { useSettings } from '../state/settings';
 import type { MobileTab } from './types';
@@ -115,6 +115,7 @@ export function MobileShell() {
         <StatusBar />
       </div>
       <OfflineBanner />
+      <SpendBanner />
       {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
       {meta && (
         <div className="mshell__meta">

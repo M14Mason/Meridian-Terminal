@@ -12,3 +12,11 @@ Every catalog item that is not built, or is built in a reduced form, with the re
 | Unusual options activity (UOA) | Partial | Volume-based and delayed; volume vs open interest is not possible without open interest. |
 | 94 FDA decision calendar | Omitted | No free official calendar of PDUFA dates; company press releases only. Clinical trials (TRIAL) cover the pipeline. |
 | SOCL Bluesky search | Partial | Bluesky's search API now requires login; a live sample from the public Jetstream firehose is the fallback. |
+
+## Earnings call transcripts (catalog 110), checked 2026-10-19
+
+API Ninjas' earnings transcript endpoint is labeled "Premium only" and commercial use is not allowed on the free tier. No other free, permitted transcript source was found. ECS summarizes the company's own earnings press release (8-K item 2.02, exhibit 99.1) instead and is labeled PARTIAL. The API Ninjas key in Settings is not used.
+
+## Prediction types not yet scored (16.4)
+
+Price direction and ranges (any ticker, including SPY and sector ETFs for market and sector direction) are predicted and scored. Earnings beat or miss odds and macro release vs nowcast predictions are not built yet; they need a reliable free consensus source for every release. Tracked in BUILD_STATUS.

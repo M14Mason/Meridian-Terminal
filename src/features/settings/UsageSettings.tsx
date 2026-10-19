@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { UsageRow } from '../../../shared/api-types';
 import { api } from '../../lib/api';
 
-// Usage meter skeleton (16.9). Spike warnings arrive in M8.
+// Usage meter (16.9): spend per day, feature and model. Spike warnings show as a banner (SpendBanner).
 export function UsageSettings() {
   const [rows, setRows] = useState<UsageRow[] | null>(null);
   useEffect(() => {
@@ -12,7 +12,8 @@ export function UsageSettings() {
   return (
     <section className="settings__section" aria-labelledby="usage-h">
       <h2 id="usage-h">AI USAGE (30 DAYS)</h2>
-      <p>Estimated spend: ${total.toFixed(4)}</p>
+      <p>Estimated spend: ${total.toFixed(4)}. By feature: {Object.entries((rows ?? []).reduce<Record<string, number>>((a, r) => ({ ...a, [r.feature]: (a[r.feature] ?? 0) + r.usd }), {})).sort((a, b) => b[1] - a[1]).map(([f, u]) => `${f} $${u.toFixed(3)}`).join(', ') || 'none'}.</p>
+      <p className="settings__hint">Estimates from token counts and the published price list (checked 2026-10-19). Your Anthropic console shows the exact bill. A banner warns when a day's spend is far above normal; there is no hard cap.</p>
       {rows && rows.length === 0 && <p className="settings__hint">No AI calls yet.</p>}
       {rows && rows.length > 0 && (
         <table className="settings__table">

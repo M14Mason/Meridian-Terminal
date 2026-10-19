@@ -21,3 +21,13 @@ describe('ai helpers', () => {
     expect(estimateUsd('cmp', 12000)).toBeLessThan(0.1);
   });
 });
+
+import { spendSpike } from './ai';
+describe('spendSpike', () => {
+  it('warns on a spike but not on normal days', () => {
+    const rows = Array.from({ length: 14 }, (_, i) => ({ day: new Date(Date.parse('2026-10-19') - (i + 1) * 86_400_000).toISOString().slice(0, 10), usd: 0.2 }));
+    expect(spendSpike([...rows, { day: '2026-10-19', usd: 0.3 }], '2026-10-19').warn).toBe(false);
+    expect(spendSpike([...rows, { day: '2026-10-19', usd: 0.9 }], '2026-10-19').warn).toBe(true);
+    expect(spendSpike([{ day: '2026-10-19', usd: 6 }], '2026-10-19').warn).toBe(true);
+  });
+});

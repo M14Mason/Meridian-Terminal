@@ -7,6 +7,8 @@ import { dir, downloadCsv, fmt, fmtBig, fmtPct } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
 import { sync, useCollection } from '../state/sync';
+import { AiBlock, List } from '../ai/AiBlock';
+import { askAi, table, type AiReply } from '../ai/client';
 
 // ---------- CIDX ----------
 interface Idx { name: string; items: { t: string; w: number }[] }
@@ -184,7 +186,30 @@ function Jrnl({ run }: { run: PanelProps['run'] }) {
         <thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th className="num">Qty</th><th className="num">Entry</th><th className="num">Exit</th><th className="num">P&amp;L</th><th>Tags</th><th>Notes</th><th /></tr></thead>
         <tbody>{shown.map((t) => { const p = pnl(t.value); return <tr key={t.id}><td>{t.value.date}</td><td><button className="link-btn" onClick={() => run(`${t.value.ticker} GP`)}>{t.value.ticker}</button></td><td>{t.value.side}</td><td className="num">{t.value.qty}</td><td className="num">{fmt(t.value.entry)}</td><td className="num">{t.value.exit == null ? 'open' : fmt(t.value.exit)}</td><td className={`num ${dir(p)}`}>{p == null ? '-' : fmt(p)}</td><td className="muted">{t.value.tags}</td><td style={{ maxWidth: 260, whiteSpace: 'normal' }}>{t.value.notes}</td><td><button className="link-btn down" onClick={() => { if (window.confirm('Delete this journal entry?') && window.confirm('Really delete? This syncs to all devices.')) void sync.remove('journal', t.id); }} aria-label="Delete entry">×</button></td></tr>; })}</tbody>
       </table>
-      <div className="disclaimer">Your own records, synced across your devices through the proxy (never in the public repo). The AI journal critic arrives with the AI layer.</div>
+      <Critic trades={shown.map((t) => t.value)} stats={stats} />
+      <div className="disclaimer">Your own records, synced across your devices through the proxy (never in the public repo). The critic sends the stats and up to 60 recent entries (notes trimmed) to Claude Sonnet through your proxy.</div>
+    </>
+  );
+}
+
+interface Crit { strengths: string[]; mistakes: string[]; patterns: string[]; rules: string[] }
+function Critic({ trades, stats }: { trades: Trade[]; stats: { n: number; win: number | null; avgW: number | null; avgL: number | null; total: number; pf: number | null } }) {
+  const [s, setS] = useState<{ reply?: AiReply<Crit>; err?: string; busy?: boolean }>({});
+  if (stats.n < 3) return <p className="muted">The AI critic needs at least 3 closed trades.</p>;
+  const go = () => {
+    const input = [
+      `STATS: ${stats.n} closed trades, win rate ${stats.win == null ? 'n/a' : (stats.win * 100).toFixed(0)}%, avg win ${stats.avgW?.toFixed(2)}, avg loss ${stats.avgL?.toFixed(2)}, total P&L ${stats.total.toFixed(2)}, profit factor ${stats.pf?.toFixed(2) ?? 'n/a'}.`,
+      `TRADES (newest first):\n${table(trades.slice(0, 60).map((t) => ({ date: t.date, ticker: t.ticker, side: t.side, qty: t.qty, entry: t.entry, exit: t.exit, pnl: pnl(t), tags: t.tags, notes: t.notes.slice(0, 160) })))}`,
+    ].join('\n\n');
+    setS({ busy: true });
+    askAi<Crit>('critic', input).then((reply) => setS({ reply }), (e: unknown) => setS({ err: e instanceof Error ? e.message : 'failed' }));
+  };
+  const r = s.reply?.result;
+  return (
+    <>
+      {!s.reply && <button disabled={s.busy} onClick={go}>{s.busy ? 'REVIEWING...' : 'AI CRITIC (about $0.02)'}</button>}
+      {s.err && <p className="down">{s.err}</p>}
+      {s.reply && r && <AiBlock reply={s.reply}><List title="STRENGTHS" items={r.strengths} cls="up" /><List title="MISTAKES" items={r.mistakes} cls="down" /><List title="PATTERNS" items={r.patterns} /><List title="RULES TO TRY" items={r.rules} /></AiBlock>}
     </>
   );
 }
