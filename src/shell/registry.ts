@@ -32,17 +32,17 @@ export const FUNCTIONS: FunctionDef[] = [
   }),
 
   // ----- M3 Data and charts -----
-  F('GP', 'Chart', 'Price chart with indicators, drawings and multi-timeframe.', { needsSecurity: true, milestone: 'M3', category: 'Charts', mobileTab: 'charts', size: { w: 28, h: 24 } }),
-  F('GIP', 'Intraday chart', 'Today, minute bars.', { needsSecurity: true, milestone: 'M3', category: 'Charts' }),
-  F('HP', 'Price history', 'Historical prices table with CSV export.', { needsSecurity: true, milestone: 'M3', category: 'Equity' }),
-  F('DES', 'Description', 'Company profile, key stats and identifiers.', { needsSecurity: true, milestone: 'M3', category: 'Equity' }),
-  F('COMP', 'Compare', 'Performance vs a benchmark.', { needsSecurity: true, milestone: 'M3', category: 'Equity' }),
-  F('BETA', 'Beta', 'Regression beta vs a benchmark.', { needsSecurity: true, milestone: 'M3', category: 'Equity' }),
-  F('TRA', 'Total return', 'Price plus dividends.', { needsSecurity: true, milestone: 'M3', category: 'Equity' }),
-  F('BQ', 'Watchlist', 'Live quotes for your watchlists.', { aliases: ['W', 'WATCH'], milestone: 'M3', category: 'Markets', mobileTab: 'markets' }),
-  F('WEI', 'World indices (ETF proxies)', 'Index dashboard built on ETF proxies, labeled as proxies.', { milestone: 'M3', category: 'Markets' }),
-  F('MOST', 'Most active', 'Most active, gainers and losers.', { aliases: ['MOV'], milestone: 'M3', category: 'Markets' }),
-  F('MCHT', 'Multi-chart', 'Chart grid with synced crosshair.', { milestone: 'M3', category: 'Charts' }),
+  F('GP', 'Chart', 'Price chart with indicators, drawings and multi-timeframe.', { needsSecurity: true, milestone: 'M3', category: 'Charts', mobileTab: 'charts', size: { w: 30, h: 28 }, load: () => import('../panels/ChartPanel') }),
+  F('GIP', 'Intraday chart', 'Today, 5-minute bars with session VWAP.', { needsSecurity: true, milestone: 'M3', category: 'Charts', size: { w: 30, h: 28 }, load: () => import('../panels/ChartPanel') }),
+  F('HP', 'Price history', 'Historical prices table with CSV export.', { needsSecurity: true, milestone: 'M3', category: 'Equity', size: { w: 22, h: 26 }, load: () => import('../panels/HistoryPanel') }),
+  F('DES', 'Description', 'Company profile, key stats and identifiers.', { needsSecurity: true, milestone: 'M3', category: 'Equity', size: { w: 22, h: 32 }, load: () => import('../panels/DescriptionPanel') }),
+  F('COMP', 'Compare', 'Performance vs a benchmark.', { needsSecurity: true, milestone: 'M3', category: 'Equity', size: { w: 28, h: 26 }, load: () => import('../panels/ComparePanel') }),
+  F('BETA', 'Beta', 'Regression beta vs a benchmark.', { needsSecurity: true, milestone: 'M3', category: 'Equity', size: { w: 26, h: 22 }, load: () => import('../panels/BetaPanel') }),
+  F('TRA', 'Total return', 'Price plus dividends.', { needsSecurity: true, milestone: 'M3', category: 'Equity', size: { w: 26, h: 24 }, load: () => import('../panels/TotalReturnPanel') }),
+  F('BQ', 'Watchlist', 'Live quotes for your watchlists.', { aliases: ['W', 'WATCH'], milestone: 'M3', category: 'Markets', mobileTab: 'markets', size: { w: 22, h: 22 }, load: () => import('../panels/WatchlistPanel') }),
+  F('WEI', 'World indices (ETF proxies)', 'Index dashboard built on ETF proxies, labeled as proxies.', { milestone: 'M3', category: 'Markets', size: { w: 24, h: 34 }, load: () => import('../panels/WeiPanel') }),
+  F('MOST', 'Most active', 'Most active, gainers and losers.', { aliases: ['MOV'], milestone: 'M3', category: 'Markets', size: { w: 18, h: 26 }, load: () => import('../panels/MostPanel') }),
+  F('MCHT', 'Multi-chart', 'Chart grid with synced crosshair.', { milestone: 'M3', category: 'Charts', size: { w: 36, h: 30 }, load: () => import('../panels/MultiChartPanel') }),
 
   // ----- M4 News and filings -----
   F('N', 'Top news', 'Market-wide headlines with latency badges.', { aliases: ['NEWS', 'TOP'], milestone: 'M4', category: 'News', mobileTab: 'news' }),

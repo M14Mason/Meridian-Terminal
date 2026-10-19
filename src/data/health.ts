@@ -17,13 +17,19 @@ export interface SourceHealth {
   milestone?: string;
 }
 
+// Sources start "idle" and turn ok/degraded/down on their first call.
 const PLANNED: [string, string, string][] = [
-  ['alpaca', 'Alpaca (IEX quotes, news)', 'M3'],
+  ['alpaca', 'Alpaca (IEX, single venue)', 'M3'],
   ['finnhub', 'Finnhub', 'M3'],
   ['massive', 'Massive (Polygon) EOD', 'M3'],
-  ['edgar', 'SEC EDGAR', 'M3'],
+  ['sec', 'SEC EDGAR data', 'M3'],
+  ['secwww', 'SEC EDGAR files', 'M3'],
   ['fred', 'FRED', 'M3'],
   ['eia', 'EIA', 'M3'],
+  ['coingecko', 'CoinGecko', 'M5'],
+  ['frankfurter', 'ECB rates (Frankfurter)', 'M5'],
+  ['worldbank', 'World Bank', 'M5'],
+  ['gdelt', 'GDELT', 'M4'],
   ['aisstream', 'AISStream', 'M6'],
   ['anthropic', 'Claude API', 'M8'],
   ['robinhood', 'Robinhood MCP', 'M10'],
@@ -32,7 +38,7 @@ const PLANNED: [string, string, string][] = [
 const sources = new Map<string, SourceHealth>();
 for (const [id, label, milestone] of [['proxy', 'Proxy (Cloudflare Worker)', 'M1'], ['sync', 'Sync', 'M2'], ...PLANNED] as const) {
   sources.set(id, {
-    id, label, milestone, status: milestone === 'M1' || milestone === 'M2' ? 'idle' : 'planned',
+    id, label, milestone, status: 'idle',
     lastSuccess: null, lastError: null, latencyMs: null, calls: 0, errors: 0, headroom: null,
   });
 }
@@ -41,8 +47,11 @@ let snapshot: SourceHealth[] = [...sources.values()];
 const listeners = new Set<() => void>();
 
 export function report(id: string, r: { ok: boolean; latencyMs?: number; error?: string; headroom?: number }): void {
-  const s = sources.get(id);
-  if (!s) return;
+  let s = sources.get(id);
+  if (!s) {
+    s = { id, label: id, status: 'idle', lastSuccess: null, lastError: null, latencyMs: null, calls: 0, errors: 0, headroom: null };
+    sources.set(id, s);
+  }
   const next: SourceHealth = {
     ...s,
     calls: s.calls + 1,

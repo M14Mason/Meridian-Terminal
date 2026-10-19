@@ -1,5 +1,5 @@
 import { useMemo, useState, type KeyboardEvent, type RefObject } from 'react';
-import { suggest } from './command';
+import { suggestAll } from './command';
 import { isBuilt } from './registry';
 
 const HISTORY_KEY = 'meridian.cmdHistory';
@@ -37,7 +37,7 @@ export function CommandLine({ onRun, inputRef, autoFocus, onDone }: Props) {
   const [sel, setSel] = useState(-1);
   const [histIdx, setHistIdx] = useState(-1);
   const [error, setError] = useState('');
-  const items = useMemo(() => (value.trim() ? suggest(value) : []), [value]);
+  const items = useMemo(() => (value.trim() ? suggestAll(value) : []), [value]);
 
   function run(cmd: string, newFrame: boolean) {
     const c = cmd.trim();
@@ -138,7 +138,7 @@ export function CommandLine({ onRun, inputRef, autoFocus, onDone }: Props) {
         <ul className="cmd__list" id={listId} role="listbox">
           {items.map((s, i) => (
             <li
-              key={s.fn.code}
+              key={s.command + (s.fn?.code ?? '')}
               id={`cmd-opt-${i}`}
               role="option"
               aria-selected={i === sel}
@@ -148,9 +148,19 @@ export function CommandLine({ onRun, inputRef, autoFocus, onDone }: Props) {
                 run(s.command, e.altKey || e.shiftKey);
               }}
             >
-              <span className="cmd__code">{s.fn.code}</span>
-              <span className="cmd__title">{s.fn.title}</span>
-              <span className={isBuilt(s.fn) ? 'up' : 'muted'}>{isBuilt(s.fn) ? '' : s.fn.milestone}</span>
+              {s.fn ? (
+                <>
+                  <span className="cmd__code">{s.fn.code}</span>
+                  <span className="cmd__title">{s.fn.title}</span>
+                  <span className={isBuilt(s.fn) ? 'up' : 'muted'}>{isBuilt(s.fn) ? '' : s.fn.milestone}</span>
+                </>
+              ) : (
+                <>
+                  <span className="cmd__code accent">{s.ticker!.ticker}</span>
+                  <span className="cmd__title">{s.ticker!.name}</span>
+                  <span className="muted">{s.ticker!.exchange}</span>
+                </>
+              )}
             </li>
           ))}
         </ul>

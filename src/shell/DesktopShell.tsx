@@ -6,6 +6,8 @@ import { EMPTY_LAYOUT, reduce, type Layout } from './layout';
 import { layoutStore } from './layoutStore';
 import { resolveCommand } from './runCommand';
 import { OfflineBanner, StatusBar } from './StatusBar';
+import { TickerTape } from '../panels/TickerTape';
+import { useSettings } from '../state/settings';
 import { Workspace } from './Workspace';
 import { linkChannel } from './linkChannel';
 
@@ -22,6 +24,7 @@ function initialLayout(): Layout {
 export function DesktopShell() {
   const [layout, dispatch] = useReducer(reduce, undefined, initialLayout);
   const [cheat, setCheat] = useState(false);
+  const settings = useSettings();
   const [layoutsOpen, setLayoutsOpen] = useState(false);
   const cmdRef = useRef<HTMLInputElement>(null);
   // Latest layout for event handlers, updated after each commit.
@@ -185,6 +188,7 @@ export function DesktopShell() {
         <StatusBar />
       </div>
       <OfflineBanner />
+      {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
       <Workspace layout={layout} dispatch={dispatch} run={(c, o) => void run(c, o)} popOut={popOut} />
       {cheat && <CheatSheet onClose={() => setCheat(false)} />}
     </div>

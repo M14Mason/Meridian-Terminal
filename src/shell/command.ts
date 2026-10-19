@@ -46,9 +46,42 @@ function score(f: FunctionDef, q: string): number {
 }
 
 export interface Suggestion {
-  fn: FunctionDef;
+  fn?: FunctionDef;
+  ticker?: { ticker: string; name: string; exchange: string };
   /** The command that running this suggestion executes. */
   command: string;
+}
+
+// Ticker universe for autocomplete (SEC company_tickers_exchange.json), loaded lazily by the shell.
+let tickerIndex: { ticker: string; name: string; exchange: string }[] = [];
+export function setTickerIndex(list: { ticker: string; name: string; exchange: string }[]): void {
+  tickerIndex = list;
+}
+
+export function suggestTickers(q: string, limit = 6): Suggestion[] {
+  const u = q.toUpperCase();
+  if (!u || !tickerIndex.length) return [];
+  const exact: Suggestion[] = [];
+  const prefix: Suggestion[] = [];
+  const name: Suggestion[] = [];
+  for (const t of tickerIndex) {
+    if (t.ticker === u) exact.push({ ticker: t, command: t.ticker });
+    else if (t.ticker.startsWith(u)) prefix.push({ ticker: t, command: t.ticker });
+    else if (u.length >= 3 && t.name.toUpperCase().includes(u)) name.push({ ticker: t, command: t.ticker });
+    if (exact.length + prefix.length >= limit * 2 && name.length >= limit) break;
+  }
+  prefix.sort((a, b) => a.command.length - b.command.length);
+  return [...exact, ...prefix, ...name].slice(0, limit);
+}
+
+/** Combined list: tickers while typing the first word, functions after a ticker or for codes. */
+export function suggestAll(input: string, limit = 8): Suggestion[] {
+  const tokens = input.trim().split(/\s+/).filter(Boolean);
+  const fns = suggest(input, limit);
+  if (tokens.length !== 1 || input.endsWith(' ')) return fns;
+  const exactFn = fns[0]?.fn?.code === tokens[0]!.toUpperCase();
+  const tick = suggestTickers(tokens[0]!, exactFn ? 3 : 5);
+  return exactFn ? [...fns.slice(0, 1), ...tick, ...fns.slice(1)].slice(0, limit) : [...tick, ...fns].slice(0, limit);
 }
 
 /** Suggestions for the function part of the input (the last token). */

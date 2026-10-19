@@ -2,8 +2,11 @@ import { useEffect, useRef, useState, type TouchEvent } from 'react';
 import { slideIn } from '../lib/motion';
 import { CommandLine } from './CommandLine';
 import { PanelHost } from './PanelHost';
+import { AgeBadge, type PanelMeta } from './panelMeta';
 import { resolveCommand } from './runCommand';
 import { OfflineBanner, StatusBar } from './StatusBar';
+import { TickerTape } from '../panels/TickerTape';
+import { useSettings } from '../state/settings';
 import type { MobileTab } from './types';
 
 // Phone layout (9.5): bottom tab bar, one panel at a time, command sheet, swipe between tabs.
@@ -43,10 +46,12 @@ function load(): { tabs: TabState; active: MobileTab } {
 export function MobileShell() {
   const [state, setState] = useState(load);
   const [sheet, setSheet] = useState(false);
+  const settings = useSettings();
   const cmdRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number; top: number } | null>(null);
   const [pull, setPull] = useState(0);
+  const [meta, setMeta] = useState<PanelMeta | null>(null);
 
   useEffect(() => {
     try {
@@ -110,13 +115,19 @@ export function MobileShell() {
         <StatusBar />
       </div>
       <OfflineBanner />
+      {settings.tickerTape && <TickerTape onPick={(sym) => void run(`${sym} GP`)} />}
+      {meta && (
+        <div className="mshell__meta">
+          <AgeBadge meta={meta} />
+        </div>
+      )}
       {pull > 0 && (
         <div className="mshell__pull muted" style={{ height: pull }}>
           {pull >= 60 ? 'Release to refresh' : 'Pull to refresh'}
         </div>
       )}
       <div ref={bodyRef} className="mshell__body" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        <PanelHost panelId={`m-${state.active}`} code={cur.code} security={cur.security} args={{}} run={(c, o) => void run(c, o?.replace ?? false)} />
+        <PanelHost onMeta={setMeta} panelId={`m-${state.active}`} code={cur.code} security={cur.security} args={{}} run={(c, o) => void run(c, o?.replace ?? false)} />
       </div>
       <nav className="tabbar" aria-label="Sections">
         {TABS.map((t, i) => (

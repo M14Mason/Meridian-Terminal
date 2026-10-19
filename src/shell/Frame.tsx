@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 
 import { animateIn } from '../lib/motion';
 import { COLS, ROW_PX, type Action, type FrameState, type PanelState } from './layout';
 import { PanelHost } from './PanelHost';
+import { AgeBadge, type PanelMeta } from './panelMeta';
 import { findFunction } from './registry';
 import { LINK_COLORS, type LinkColor } from './types';
 
@@ -24,6 +25,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
   const drag = useRef<Drag | null>(null);
   const tabDrag = useRef<{ id: string; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState(false);
+  const [meta, setMeta] = useState<PanelMeta | null>(null);
   const active = panels[frame.active];
 
   useEffect(() => animateIn(ref.current), []);
@@ -124,6 +126,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
           })}
         </div>
         <span className="frame__title">{fn?.title}</span>
+        <AgeBadge meta={meta} />
         <button className={`frame__link link--${active.link ?? 'none'}`} onClick={cycleLink} title="Link color: panels with the same color follow the same ticker" aria-label={`Link color ${active.link ?? 'none'}`}>
           ●
         </button>
@@ -162,7 +165,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
       </header>
       {!frame.minimized && (
         <div className="frame__body">
-          <PanelHost panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
+          <PanelHost onMeta={setMeta} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
         </div>
       )}
       {!frame.minimized && !frame.maximized && !frame.locked && (

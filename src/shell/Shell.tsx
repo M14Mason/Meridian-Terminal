@@ -2,6 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { detectLowPower, setLowPower } from '../lib/motion';
 import { applyTheme, useSettings } from '../state/settings';
 import { startSync } from '../state/sync';
+import { tickers } from '../data/adapters/sec';
+import { setTickerIndex } from './command';
 import { DesktopShell } from './DesktopShell';
 import { MobileShell } from './MobileShell';
 import { PopoutShell } from './PopoutShell';
@@ -38,6 +40,10 @@ export function Shell() {
   const [autoLow, setAutoLow] = useState(false);
 
   useEffect(() => startSync(), []);
+  // Ticker autocomplete. Loaded in the background, cached for a day.
+  useEffect(() => {
+    void tickers().then(setTickerIndex, () => undefined);
+  }, []);
   useEffect(() => applyTheme(settings), [settings]);
   useEffect(() => {
     void detectLowPower().then(setAutoLow);

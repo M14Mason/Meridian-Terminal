@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCommand, suggest } from './command';
+import { parseCommand, setTickerIndex, suggest, suggestAll } from './command';
 import { FUNCTIONS } from './registry';
 
 describe('parseCommand', () => {
@@ -25,9 +25,21 @@ describe('parseCommand', () => {
 
 describe('suggest', () => {
   it('ranks exact and prefix matches first', () => {
-    expect(suggest('GP')[0]?.fn.code).toBe('GP');
+    expect(suggest('GP')[0]?.fn?.code).toBe('GP');
     expect(suggest('AAPL G')[0]?.command.startsWith('AAPL G')).toBe(true);
-    expect(suggest('news').map((s) => s.fn.code)).toContain('N');
+    expect(suggest('news').map((s) => s.fn?.code)).toContain('N');
+  });
+  it('suggests tickers for the first word', () => {
+    setTickerIndex([
+      { ticker: 'AAPL', name: 'Apple Inc.', exchange: 'Nasdaq' },
+      { ticker: 'AAP', name: 'Advance Auto Parts', exchange: 'NYSE' },
+      { ticker: 'NVDA', name: 'NVIDIA CORP', exchange: 'Nasdaq' },
+    ]);
+    const s = suggestAll('aap');
+    expect(s[0]?.ticker?.ticker).toBe('AAP');
+    expect(s.some((x) => x.ticker?.ticker === 'AAPL')).toBe(true);
+    expect(suggestAll('nvidia')[0]?.ticker?.ticker).toBe('NVDA');
+    expect(suggestAll('AAPL ').every((x) => x.fn)).toBe(true);
   });
   it('has unique codes and aliases', () => {
     const seen = new Set<string>();

@@ -5,7 +5,7 @@ import type { PanelProps } from '../types';
 
 export default function HelpPanel({ run }: PanelProps) {
   const [q, setQ] = useState('');
-  const list = useMemo(() => (q.trim() ? suggest(q, 60).map((s) => s.fn) : FUNCTIONS), [q]);
+  const list = useMemo(() => (q.trim() ? suggest(q, 60).map((s) => s.fn!) : FUNCTIONS), [q]);
   return (
     <div className="help">
       <input className="help__search" placeholder="Search functions" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search functions" />

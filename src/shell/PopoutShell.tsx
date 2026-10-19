@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CommandLine } from './CommandLine';
 import { linkChannel } from './linkChannel';
 import { PanelHost } from './PanelHost';
+import { AgeBadge, type PanelMeta } from './panelMeta';
 import { findFunction } from './registry';
 import { resolveCommand } from './runCommand';
 import { LINK_COLORS, type LinkColor } from './types';
@@ -12,6 +13,7 @@ export function PopoutShell({ params }: { params: URLSearchParams }) {
   const [security, setSecurity] = useState(() => params.get('sec')?.toUpperCase() || undefined);
   const link = LINK_COLORS.includes(params.get('link') as LinkColor) ? (params.get('link') as LinkColor) : null;
   const cmdRef = useRef<HTMLInputElement>(null);
+  const [meta, setMeta] = useState<PanelMeta | null>(null);
 
   useEffect(() => {
     if (!link) return;
@@ -36,9 +38,10 @@ export function PopoutShell({ params }: { params: URLSearchParams }) {
       <div className="topbar">
         {link && <span className={`frame__link link--${link}`}>●</span>}
         <CommandLine inputRef={cmdRef} onRun={(c) => run(c)} />
+        <AgeBadge meta={meta} />
       </div>
       <div className="popout__body">
-        <PanelHost panelId="popout" code={code} security={security} args={{}} run={(c) => void run(c)} />
+        <PanelHost onMeta={setMeta} panelId="popout" code={code} security={security} args={{}} run={(c) => void run(c)} />
       </div>
     </div>
   );
