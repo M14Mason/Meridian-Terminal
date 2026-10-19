@@ -1,0 +1,6 @@
+title = "meridian-terminal"
+[extend]
+useDefault = true
+[allowlist]
+description = "scanner fixtures"
+paths = ['''scripts/scan-secrets\.mjs''', '''tests/secrets\.test\.ts''', '''package-lock\.json''']

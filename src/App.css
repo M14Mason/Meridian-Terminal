@@ -1,0 +1,6 @@
+.boot { min-height: 100%; padding: 24px 16px; display: flex; flex-direction: column; gap: 8px; }
+.boot__title { color: var(--accent); font-size: 20px; letter-spacing: 0.08em; margin: 0 0 12px; }
+.boot__line { margin: 0; }
+.boot__ok { color: var(--up); }
+.boot__warn { color: var(--down); }
+.boot__footer { margin-top: auto; color: var(--text-dim); font-size: 11px; }

@@ -1,0 +1,9 @@
+# Cloudflare Worker ("the proxy"). Free plan. No secrets in this file (2.1).
+# Secrets are set by the owner with: npx wrangler secret put NAME -c worker/wrangler.toml
+name = "meridian-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Comma separated. Localhost is for `npm run dev` only.
+ALLOWED_ORIGINS = "https://m14mason.github.io,http://localhost:5173"

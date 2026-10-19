@@ -1,0 +1,62 @@
+/* Theme tokens (BUILD_PROMPT 9.1). Themes change tokens only, never layout. */
+:root,
+:root[data-theme='classic'] {
+  --bg: #000000;
+  --panel: #0a0a0a;
+  --text: #ffb800;
+  --text-dim: #b38200;
+  --accent: #fa7900;
+  --up: #00c805;
+  --down: #ff3b30;
+  --link: #4aa3ff;
+  --hairline: #262626;
+  --radius: 0px;
+  --focus: #4aa3ff;
+}
+:root[data-theme='dark'] {
+  --bg: #0b0b0b;
+  --panel: #151515;
+  --text: #e6e6e6;
+  --text-dim: #9a9a9a;
+  --accent: #5b9dff;
+  --up: #3ecf6e;
+  --down: #ff5c5c;
+  --link: #5b9dff;
+  --hairline: #2a2a2a;
+  --radius: 6px;
+  --focus: #5b9dff;
+}
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --panel: #f4f4f4;
+  --text: #111111;
+  --text-dim: #555555;
+  --accent: #b34700;
+  --up: #007a1f;
+  --down: #c4001a;
+  --link: #0050b3;
+  --hairline: #cfcfcf;
+  --radius: 4px;
+  --focus: #0050b3;
+}
+/* Color-blind-safe up/down (blue/orange), toggled in Settings. */
+:root[data-cb='1'] {
+  --up: #3b8bff;
+  --down: #ff8c1a;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: var(--link); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
