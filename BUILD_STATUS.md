@@ -16,7 +16,8 @@ M3 Data and charts (next)
 
 ## In progress
 
-* None
+* **M3 Data and charts, part 1 done:** central token-bucket scheduler (`src/data/scheduler.ts`: priority on screen > alerts > background, exponential backoff capped at 5 minutes, 4x slower polling in hidden tabs, headroom for the health panel) and the indicator library (`shared/indicators.ts`: SMA, EMA, WMA, Wilder RMA, RSI, MACD, stochastic, Bollinger, true range, ATR, Donchian, Keltner, Supertrend, OBV, session VWAP, anchored VWAP, volume profile, Ichimoku, Heikin Ashi, Renko, point and figure, pivots, Fibonacci, auto Fibonacci, swings, support and resistance zones, candlestick patterns, RSI divergence, returns, correlation, beta, total return, pairs spread z-score, gap stats, seasonality, opening range). 33 tests.
+* **M3 remaining (needs owner keys and the deployed proxy to verify live):** provider adapters, quotes, watchlist, charts UI, HP, DES, COMP, multi-chart, replay, ticker tape.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
@@ -44,6 +45,8 @@ M3 Data and charts (next)
 * **Every planned function code is registered now** with its milestone, so autocomplete is complete and unbuilt functions say "Not built yet. Arrives in Mx" instead of pretending.
 * **Hash routing** (`#/pop?...` for pop-outs), so GitHub Pages needs no 404 fallback.
 * **Sync clock skew guard:** the proxy clamps record timestamps to at most 5 minutes in the future so one bad device clock cannot win every conflict.
+* **RSI reference values** are computed independently in Python at full precision from the StockCharts ChartSchool example series (70.4641, 66.2496). The published table is an image that rounds intermediate averages and could not be machine-read, so its numbers are not used.
+* **Indicators live in `shared/`** so the same code runs in the browser, in Web Workers and in the proxy (for server-side alerts in M11).
 * **Bundle budget is 150 KB gzip for initial JS** (React alone is about 60 KB gzip).
 * **Pairing security model (M1).** Device tokens: 256-bit random, only SHA-256 stored. Setup secret: constant-time compare, 5 failures per hour then locked (global, so a stranger can delay first pairing but not get in). Codes: one live code at a time, HMAC-peppered hash, 3 minutes, single use (deleted before the token is issued), 5 wrong then destroyed, 15 wrong per 15 minutes globally then locked. Max 10 devices. Revoke deletes the row, so the next request fails.
 * **Rate-limit counters live in Durable Object memory**, not storage, to save row writes. They reset if the object is evicted, which is acceptable for a single owner. `last_seen` writes are throttled to once per 5 minutes per device.
@@ -60,7 +63,7 @@ M3 Data and charts (next)
 ## Next 5 steps
 
 1. M3: verify Alpaca, Finnhub and Massive free-tier limits and terms (verify items 6), record in docs/DATA_SOURCES.md.
-2. M3: client adapter layer (normalized shapes) and the central token-bucket scheduler (5.5) with tests; batch quote requests to protect the 100,000/day Worker budget.
+2. M3: client adapter layer (normalized shapes) on top of the scheduler; batch quote requests to protect the 100,000/day Worker budget.
 3. M3: proxy providers for Finnhub, Massive, EDGAR (SEC User-Agent var), FRED, EIA; ticker universe from SEC company_tickers.json for autocomplete.
 4. M3: charts (TradingView Lightweight Charts, check attribution), indicators with reference-value tests, drawing tools synced as `drawings`.
 5. M3: BQ watchlist, HP, DES, COMP, BETA, TRA, MOST, WEI (labeled ETF proxies), multi-chart, replay, ticker tape, IndexedDB data cache with staleness labels.
