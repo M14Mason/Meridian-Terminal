@@ -88,7 +88,9 @@ export async function up<T>(provider: string, path: string, params?: Params, opt
         report(provider, { ok: true, latencyMs: Math.round(performance.now() - t0), headroom: scheduler.headroom(provider) });
         return out;
       } catch (e) {
-        report(provider, { ok: false, error: e instanceof ApiError ? e.message : 'network error' });
+        // A 404 means the source answered "no such data": it is reachable, so health stays OK.
+        if (e instanceof ApiError && e.status === 404) report(provider, { ok: true, latencyMs: Math.round(performance.now() - t0) });
+        else report(provider, { ok: false, error: e instanceof ApiError ? e.message : 'network error' });
         throw e;
       }
     },
@@ -113,7 +115,9 @@ export async function upPost<T>(provider: string, path: string, body: unknown, o
       report(provider, { ok: true, latencyMs: Math.round(performance.now() - t0) });
       return out;
     } catch (e) {
-      report(provider, { ok: false, error: e instanceof ApiError ? e.message : 'network error' });
+      // A 404 means the source answered "no such data": it is reachable, so health stays OK.
+      if (e instanceof ApiError && e.status === 404) report(provider, { ok: true, latencyMs: Math.round(performance.now() - t0) });
+      else report(provider, { ok: false, error: e instanceof ApiError ? e.message : 'network error' });
       throw e;
     }
   }, opts.priority ?? PRIORITY.visible);

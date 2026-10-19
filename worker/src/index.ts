@@ -204,6 +204,18 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     if (!exists.ok || !exists.data) return json({ error: 'unauthorized' }, 401);
     return env.AIS.get(env.AIS.idFromName(AIS_INSTANCE)).fetch(new Request('https://ais/ws', req));
   }
+  // Upstream check for the owner's admin token: fixed SEC requests the app makes, status only (no caching).
+  if (path === '/api/admin/upcheck' && method === 'GET') {
+    if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
+    const ua = typeof env.SEC_USER_AGENT === 'string' ? env.SEC_USER_AGENT : '';
+    const targets = ['https://data.sec.gov/submissions/CIK0000320193.json', 'https://www.sec.gov/files/company_tickers_exchange.json', 'https://efts.sec.gov/LATEST/search-index?q=%22going%20concern%22&forms=10-K'];
+    const results = await Promise.all(targets.map(async (t) => {
+      const r = await fetch(t, { headers: { 'user-agent': `MeridianTerminal/1.0 ${ua}`, accept: 'application/json' } });
+      const body = (await r.text()).slice(0, 160);
+      return { url: t.replace(/\?.*/, ''), status: r.status, uaSet: ua.length > 0, uaHasEmail: /@/.test(ua), sample: r.ok ? '' : body };
+    }));
+    return json(results);
+  }
   // AISStream probe for the owner's admin token: 10 s on a busy area, reports frame counts and the first control frame.
   if (path === '/api/ais/probe' && method === 'GET') {
     if (!(await isAdmin(req, env))) return json({ error: 'unauthorized' }, 401);
@@ -446,6 +458,8 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     log('upstream', { provider: provider.id, status: out.res.status, cache: out.cache, ms: Date.now() - t0 });
     if (out.res.status !== 200) {
       if (out.res.status === 424) return json({ error: `${provider.id} key not set (Settings > Keys)` }, 424);
+      // 404 is "no such data" (for example a quarter not filed yet), not an outage: pass it through as 404.
+      if (out.res.status === 404) return json({ error: `${provider.id} has no data for this request` }, 404);
       return json({ error: `upstream ${provider.id} returned ${out.res.status}` }, 502);
     }
     return new Response(out.res.body, {
