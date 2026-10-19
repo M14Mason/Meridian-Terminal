@@ -313,7 +313,7 @@ export default function TankerPanel(_: PanelProps) {
             </section>
           )}
           <p className="disclaimer">
-            Limits: AIS destinations are typed in by crews and often wrong. Cargo is not broadcast, and AIS type codes cannot tell crude from products. Coverage thins far offshore. Free data lags by minutes. Ships can switch AIS off, which is what the dark-ship list watches for (gap over 60 minutes inside a chokepoint, counted only while the relay has been running at least an hour). PortWatch transits are official IMF estimates and lag about a week. Live 24h counts only cover time the map was open.
+            Limits: AIS destinations are typed in by crews and often wrong. Cargo is not broadcast, and AIS type codes cannot tell crude from products. Coverage depends on volunteer shore receivers: dense in Europe and North America, thin in the Persian Gulf, Red Sea, much of Asia and far offshore (measured 2026-10-19: 8 ships in the whole Gulf in 25 seconds vs 38 in the English Channel), so an empty area does not mean no tankers. Use the PortWatch column for official chokepoint counts. Free data lags by minutes. Ships can switch AIS off, which is what the dark-ship list watches for (gap over 60 minutes inside a chokepoint, counted only while the relay has been running at least an hour). PortWatch transits are official IMF estimates and lag about a week. Live 24h counts only cover time the app was open.
           </p>
         </aside>
       </div>

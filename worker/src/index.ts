@@ -6,6 +6,7 @@ import { log } from './log';
 import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import { satImage, SITES } from './sat';
 import { runAi } from './ai';
+import { toText } from './aishub';
 import { testAllKeys } from './keytest';
 import { finishAuth, snapshot, startAuth, type SecretStore } from './robinhood';
 import { runAlerts, type AlertDeps } from './alerts';
@@ -226,27 +227,26 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const ws = resp.webSocket;
     if (!ws) return json({ error: `upgrade failed ${resp.status}` });
     ws.accept();
-    const out = { frames: 0, ships: 0, firstFrame: '', close: '', types: {} as Record<string, number>, kinds: [] as string[], hex: '' };
+    const out = { frames: 0, ships: 0, uniqueShips: 0, firstFrame: '', close: '', types: {} as Record<string, number> };
+    const mmsis = new Set<string>();
     await new Promise<void>((resolve) => {
-      const t = setTimeout(resolve, 10_000);
-      ws.addEventListener('message', (e) => {
+      const t = setTimeout(resolve, Math.min(30_000, Number(url.searchParams.get('secs') ?? 10) * 1000));
+      ws.addEventListener('message', (e) => void toText(e.data).then((text) => {
         out.frames++;
-        const d = e.data as unknown;
-        const kind = typeof d === 'string' ? 'string' : d instanceof ArrayBuffer ? `arraybuffer:${d.byteLength}` : Object.prototype.toString.call(d);
-        if (out.kinds.length < 5) out.kinds.push(kind);
-        if (d instanceof ArrayBuffer && !out.hex) out.hex = [...new Uint8Array(d.slice(0, 24))].map((b) => b.toString(16).padStart(2, '0')).join(' ');
-        if (d instanceof Blob && !out.hex) { out.hex = 'pending'; void d.arrayBuffer().then((ab) => { out.hex = [...new Uint8Array(ab.slice(0, 24))].map((b) => b.toString(16).padStart(2, '0')).join(' '); out.firstFrame = new TextDecoder().decode(ab.slice(0, 160)); }); }
-        const text = typeof d === 'string' ? d : d instanceof ArrayBuffer ? new TextDecoder().decode(d) : '';
         if (!out.firstFrame) out.firstFrame = text.slice(0, 200);
         const mt = /"MessageType":"(\w+)"/.exec(text)?.[1] ?? 'other';
         out.types[mt] = (out.types[mt] ?? 0) + 1;
-        if (mt === 'PositionReport') out.ships++;
-      });
+        if (mt === 'PositionReport') { out.ships++; const m = /"MMSI":(\d+)/.exec(text)?.[1]; if (m) mmsis.add(m); }
+      }));
       ws.addEventListener('close', (e) => { out.close = `${e.code} ${e.reason}`.slice(0, 160); clearTimeout(t); resolve(); });
-      ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [[[49.5, -2.5], [51.5, 2.5]]], FilterMessageTypes: ['PositionReport', 'ShipStaticData'] }));
+      // Optional ?box=lat1,lon1,lat2,lon2 (default English Channel).
+      const b = (url.searchParams.get('box') ?? '49.5,-2.5,51.5,2.5').split(',').map(Number);
+      const box = b.length === 4 && b.every(Number.isFinite) ? [[b[0], b[1]], [b[2], b[3]]] : [[49.5, -2.5], [51.5, 2.5]];
+      ws.send(JSON.stringify({ APIKey: key, BoundingBoxes: [box], FilterMessageTypes: ['PositionReport', 'ShipStaticData'] }));
     });
     try { ws.close(); } catch { /* closed */ }
     // Never echo the key: the first frame is AISStream's reply, not our request.
+    out.uniqueShips = mmsis.size;
     return json({ ...out, firstFrame: out.firstFrame.replace(key, '[key]') });
   }
   // AI self-test for the owner's admin token: runs one feature on a tiny input (a cent or less) and returns the result or error.
