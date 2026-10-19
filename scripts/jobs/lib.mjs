@@ -12,15 +12,18 @@ export function requireEnv(...names) {
 }
 
 let last = 0;
-/** SEC fetch: declared User-Agent, at most 8 requests per second, retries on 429/5xx. */
-export async function sec(url, as = 'text') {
+/**
+ * SEC fetch: declared User-Agent, at most 8 requests per second, retries on 429/5xx.
+ * `missingOk` treats 403/404 as "not published" (SEC answers 403 for absent index files).
+ */
+export async function sec(url, as = 'text', missingOk = false) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const wait = Math.max(0, last + 125 - Date.now());
     if (wait) await new Promise((r) => setTimeout(r, wait));
     last = Date.now();
     const r = await fetch(url, { headers: { 'user-agent': `MeridianTerminal/1.0 ${UA}`, 'accept-encoding': 'gzip, deflate' } });
     if (r.ok) return as === 'json' ? r.json() : r.text();
-    if (r.status === 404) return null;
+    if (r.status === 404 || (missingOk && r.status === 403)) return null;
     await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
   }
   throw new Error(`SEC fetch failed after retries: ${new URL(url).pathname}`);

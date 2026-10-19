@@ -62,6 +62,8 @@ M6 Tanker map (in progress)
 
 ## Known bugs
 
+* **Owner feedback 2026-10-19: the orange (amber) in the classic theme looks off.** Retune `--text`/`--accent`/`--select-bg` in src/styles/tokens.css during M12 polish, comparing against real terminal screenshots. Rest of the palette (white values, saturated green/red, navy title bands, dark red action buttons) is accepted.
+
 * None open. Dependabot PR "Bump typescript to 7.0.2" fails by design (typescript-eslint needs TS < 6.1); close it. An ignore rule now prevents new ones.
 
 ## Next 5 steps

@@ -18,7 +18,7 @@ for (let back = 1; back <= 14 && processed < MAX_DAYS_PER_RUN; back++) {
   const day = ymd(d);
   if (done.has(day)) continue;
   const q = Math.floor(d.getUTCMonth() / 3) + 1;
-  const idx = await sec(`https://www.sec.gov/Archives/edgar/daily-index/${d.getUTCFullYear()}/QTR${q}/form.${day}.idx`);
+  const idx = await sec(`https://www.sec.gov/Archives/edgar/daily-index/${d.getUTCFullYear()}/QTR${q}/form.${day}.idx`, 'text', true);
   if (!idx) {
     done.add(day); // holiday or not published
     continue;
@@ -43,17 +43,22 @@ for (let back = 1; back <= 14 && processed < MAX_DAYS_PER_RUN; back++) {
   console.log(`${day}: ${files.size} Form 4 filings scanned`);
   done.add(day);
   processed++;
+  await save(); // keep progress even if a later day fails
 }
 
-const cutoff = new Date(Date.now() - KEEP_DAYS * 86_400_000).toISOString().slice(0, 10);
-const seen = new Set();
-state.buys = state.buys.filter((b) => {
-  const k = `${b.acc}|${b.owner}|${b.date}|${b.shares}|${b.price}`;
-  if (b.date < cutoff || seen.has(k)) return false;
-  seen.add(k);
-  return true;
-});
-state.days = [...done].filter((d) => d >= cutoff.replace(/-/g, '')).sort();
-state.at = Date.now();
+await save();
 console.log(`open-market buys kept: ${state.buys.length}`);
-await cachePut('insiders', state);
+
+async function save() {
+  const cutoff = new Date(Date.now() - KEEP_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const seen = new Set();
+  state.buys = state.buys.filter((b) => {
+    const k = `${b.acc}|${b.owner}|${b.date}|${b.shares}|${b.price}`;
+    if (b.date < cutoff || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  state.days = [...done].filter((d) => d >= cutoff.replace(/-/g, '')).sort();
+  state.at = Date.now();
+  await cachePut('insiders', state);
+}

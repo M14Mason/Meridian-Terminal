@@ -17,28 +17,30 @@
 /* Theme tokens (BUILD_PROMPT 9.1). Themes change tokens only, never layout. */
 :root,
 :root[data-theme='classic'] {
-  /* Classic terminal palette. Third-party approximations of the familiar terminal colors
-     (orange FB8B1E, green 4AF6C3, red FF433D, blue 0068FF), tuned by eye. Not official assets. */
+  /* Classic terminal look, tuned by eye against the familiar screens (third-party approximation,
+     no official assets): deep amber labels, white data, saturated green/red, navy header bands. */
   --bg: #000000;
   --panel: #000000;
-  --text: #fb8b1e;        /* labels, headers, function codes */
-  --value: #f0f0f0;       /* data values are white */
-  --text-dim: #8c8c8c;    /* secondary text is neutral grey */
-  --accent: #fb8b1e;
-  --up: #4af6c3;
-  --down: #ff433d;
-  --link: #4d94ff;        /* 0068FF lifted slightly so it stays readable on black */
-  --blue: #0068ff;
-  --hairline: #2e2e2e;
+  --text: #ffa028;        /* amber: labels, headers, codes */
+  --value: #ffffff;       /* data values */
+  --text-dim: #a0a0a0;
+  --accent: #ffa028;
+  --up: #1ee05a;          /* saturated green */
+  --down: #ff3a3a;        /* saturated red */
+  --link: #5aa0ff;
+  --blue: #0a5ad6;
+  --hairline: #333333;
   --radius: 0px;
-  --focus: #0068ff;
-  --head-bg: #1c1c1c;
-  --select-bg: #fb8b1e;
+  --focus: #ffd500;
+  --head-bg: #10203f;     /* navy header band */
+  --select-bg: #ffa028;
   --select-fg: #000000;
-  --btn-bg: #262626;
-  --btn-fg: #f0f0f0;
-  --input-bg: #0d0d0d;
-  --go-bg: #4af6c3;
+  --btn-bg: #2a2a2a;
+  --btn-fg: #ffffff;
+  --input-bg: #000000;
+  --go-bg: #1ee05a;
+  --action-bg: #8c1010;   /* dark red action buttons */
+  --th-bg: #1a1a1a;
 }
 :root[data-theme='dark'] {
   --bg: #0b0b0b;
@@ -61,6 +63,8 @@
   --btn-fg: #e6e6e6;
   --input-bg: #111111;
   --go-bg: #3ecf6e;
+  --action-bg: #3a3f4a;
+  --th-bg: #151515;
 }
 :root[data-theme='light'] {
   --bg: #ffffff;
@@ -83,11 +87,14 @@
   --btn-fg: #111111;
   --input-bg: #ffffff;
   --go-bg: #007a1f;
+  --action-bg: #b00000;
+  --th-bg: #ececec;
 }
 /* Color-blind-safe up/down (blue/orange), toggled in Settings. */
 :root[data-cb='1'] {
   --up: #3b8bff;
   --down: #ff8c1a;
+  --go-bg: #3b8bff;
 }
 
 * { box-sizing: border-box; }

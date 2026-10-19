@@ -13,8 +13,8 @@ describe('heat', () => {
     expect(goodness(0.5, 'high')).toBe(0);
   });
   it('colors', () => {
-    expect(heatColor(1)).toBe('rgb(0,140,100)');
-    expect(heatColor(-1)).toBe('rgb(180,40,36)');
+    expect(heatColor(1)).toBe('rgb(0,150,40)');
+    expect(heatColor(-1)).toBe('rgb(200,20,20)');
     expect(heatColor(0)).toBe('rgb(20,20,20)');
     expect(heatColor(NaN)).toBe('rgb(26,26,26)');
   });

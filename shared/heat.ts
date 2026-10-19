@@ -31,8 +31,8 @@ export function heatColor(score: number, neutral = false): string {
   if (!Number.isFinite(score)) return 'rgb(26,26,26)';
   const mid: [number, number, number] = [20, 20, 20];
   const s = Math.max(-1, Math.min(1, score));
-  if (neutral) return s >= 0 ? mix(mid, [176, 96, 16], s) : mix(mid, [0, 72, 176], -s);
-  return s >= 0 ? mix(mid, [0, 140, 100], s) : mix(mid, [180, 40, 36], -s);
+  if (neutral) return s >= 0 ? mix(mid, [200, 110, 0], s) : mix(mid, [10, 70, 190], -s);
+  return s >= 0 ? mix(mid, [0, 150, 40], s) : mix(mid, [200, 20, 20], -s);
 }
 
 export interface Rect { x: number; y: number; w: number; h: number }

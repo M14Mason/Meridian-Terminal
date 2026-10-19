@@ -225,3 +225,25 @@
 .favbar { display: flex; gap: 3px; padding: 2px 8px; border-bottom: 1px solid var(--hairline); overflow-x: auto; }
 .favbar button { min-height: 22px; padding: 0 8px; font-size: 11px; color: var(--text); }
 .menu-btn { color: #000 !important; background: var(--text) !important; font-weight: 700; min-height: 26px; padding: 2px 10px; }
+
+/* Terminal details: navy title bands, grey header rows, dark red action buttons, amber selection. */
+.frame__head { background: var(--head-bg); border-bottom: 1px solid #000; }
+.frame__title { color: var(--value); font-weight: 600; }
+.frame__tab { background: transparent; color: var(--value); }
+.frame__tab[aria-selected='true'] { background: var(--select-bg); color: var(--select-fg); }
+.frame__btn { background: transparent; color: var(--value); }
+.frame--focused { border-color: var(--text); }
+.grid-table th { background: var(--th-bg); color: var(--text); border-bottom: 1px solid var(--hairline); }
+.grid-table td { border-bottom: 1px solid #1a1a1a; }
+.toolbar button { background: var(--btn-bg); color: var(--value); }
+.toolbar button[aria-pressed='true'] { background: var(--select-bg); color: var(--select-fg); }
+.settings__danger, .toolbar .settings__danger { background: var(--action-bg) !important; color: #fff !important; }
+.topbar { background: #000; border-bottom: 1px solid var(--hairline); }
+.favbar { background: #000; }
+.favbar button { background: var(--action-bg); color: #fff; }
+.menu-btn { background: var(--action-bg) !important; color: #fff !important; }
+.cmd__input { border-color: var(--text); color: #ffd500; }
+.cmd__input::placeholder { color: #6a5a40; }
+.lp__code { color: var(--text); }
+.tabbar { background: #000; }
+.tabbar__btn[aria-current='page'] { color: #000; background: var(--text); }
