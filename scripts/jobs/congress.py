@@ -30,7 +30,7 @@ def get(url):
 
 def cache(method, body=None):
     req = urllib.request.Request(f"{PROXY}/api/cache/congress", method=method, data=body,
-                                 headers={"authorization": f"Bearer {ADMIN}", "content-type": "application/json"})
+                                 headers={"authorization": f"Bearer {ADMIN}", "content-type": "application/json", "user-agent": "MeridianTerminal-jobs/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read() or b"null")
