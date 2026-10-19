@@ -95,3 +95,52 @@ export function PortfolioBanner({ onOpen }: { onOpen?: () => void }) {
     </div>
   );
 }
+
+const SEEN = 'meridian:alerts-seen';
+/** New alerts as a banner on any open device, with an optional sound per type (18.2, 18.4). */
+export function AlertBanner() {
+  const [items, setItems] = useState<{ id: string; title: string; type: string; at: number }[]>([]);
+  useEffect(() => {
+    let live = true;
+    let seen = 0;
+    try { seen = Number(localStorage.getItem(SEEN) ?? '0') || Date.now() - 3600_000; } catch { seen = Date.now() - 3600_000; }
+    const check = () => api<{ items: { id: string; title: string; type: string; at: number }[] }>('/api/alerts/history').then((r) => {
+      if (!live) return;
+      const fresh = r.items.filter((x) => x.at > seen);
+      if (!fresh.length) return;
+      setItems((cur) => [...fresh, ...cur].slice(0, 5));
+      seen = Math.max(...fresh.map((x) => x.at));
+      try { localStorage.setItem(SEEN, String(seen)); } catch { /* storage blocked */ }
+      playAlertSound(fresh[0]!.type);
+    }, () => undefined);
+    check();
+    const id = setInterval(check, 60_000);
+    return () => { live = false; clearInterval(id); };
+  }, []);
+  if (!items.length) return null;
+  return (
+    <div className="banner banner--alert" role="alert">
+      ALERT: {items[0]!.title}{items.length > 1 ? ` (+${items.length - 1} more, see ALRT)` : ''}{' '}
+      <button className="link-btn" onClick={() => setItems([])}>dismiss</button>
+    </div>
+  );
+}
+
+/** Short tone by alert type. Off unless enabled in ALRT; off by default on phones (18.4). */
+function playAlertSound(type: string) {
+  try {
+    if (localStorage.getItem('meridian:alert-sound') !== '1') return;
+    const ctx = new AudioContext();
+    const freq: Record<string, number> = { price_above: 880, price_below: 440, pct_move: 660, line_cross: 990, news: 520, filing: 600, system: 330 };
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.frequency.value = freq[type] ?? 700;
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.4);
+  } catch {
+    // audio blocked until the user interacts with the page
+  }
+}

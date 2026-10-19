@@ -37,6 +37,7 @@
 .banner { padding: 4px 8px; font-size: 12px; }
 .banner--warn { background: var(--down); color: #000; }
 .banner--error { background: #b0161a; color: #fff; font-weight: 600; }
+.banner--alert { background: #ffa028; color: #000; font-weight: 600; }
 
 /* Menus */
 .menu {

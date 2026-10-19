@@ -7,6 +7,8 @@ import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import { satImage, SITES } from './sat';
 import { runAi } from './ai';
 import { finishAuth, snapshot, startAuth, type SecretStore } from './robinhood';
+import { runAlerts, type AlertDeps } from './alerts';
+import type { Fired } from '../../shared/alerts';
 import { isStale, validSnapshot, type Snapshot } from '../../shared/portfolio';
 import type { Result } from './vault';
 
@@ -112,6 +114,25 @@ async function refreshPortfolio(store: SecretStore): Promise<PortfolioState> {
 }
 const callbackPage = (title: string, body: string, status = 200) =>
   new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="background:#000;color:#ffa028;font:14px monospace;padding:24px"><h1 style="font-size:16px">${title}</h1><p style="color:#fff">${body}</p></body>`, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'", ...SECURITY_HEADERS } });
+
+let lastManualRun = 0;
+function alertDeps(env: Env, vault: VaultStub, ctx: { waitUntil(p: Promise<unknown>): void }, rules: { id: string; v: unknown }[]): AlertDeps {
+  const store = secretStore(vault);
+  return {
+    rules,
+    key: async (n) => { const r = await vault.resolveKey(n); return r.ok ? r.data : null; },
+    get: store.get,
+    put: store.put,
+    usage: async () => { const r = await vault.usage(15); return r.ok ? r.data : []; },
+    portfolio: () => readPortfolio(store),
+    email: typeof env.ALERT_EMAIL === 'string' && env.ALERT_EMAIL ? env.ALERT_EMAIL : null,
+    ctx,
+  };
+}
+async function alertsNow(env: Env, vault: VaultStub, ctx: { waitUntil(p: Promise<unknown>): void }, mode: 'market' | 'hourly' | 'manual') {
+  const rules = await vault.listCollection('alerts');
+  return runAlerts(alertDeps(env, vault, ctx, rules.ok && 'data' in rules ? (rules.data as { id: string; v: unknown }[]) : []), mode);
+}
 
 async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
@@ -282,6 +303,33 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return json(await res.json(), res.status);
   }
 
+  // ----- Alerts (18) -----
+  if (path === '/api/alerts/history' && method === 'GET') {
+    const raw = await secretStore(vault).get('alert_history');
+    return json({ items: raw ? (JSON.parse(raw) as Fired[]).slice(0, 150) : [], email: typeof env.ALERT_EMAIL === 'string' && Boolean(env.ALERT_EMAIL) });
+  }
+  if (path === '/api/alerts/run' && method === 'POST') {
+    if (Date.now() - lastManualRun < 60_000) return json({ error: 'wait a minute between manual runs' }, 429);
+    lastManualRun = Date.now();
+    const fired = await alertsNow(env, vault, ctx, 'manual');
+    return json({ fired: fired.length });
+  }
+  // Failure drill (18.5): writes a test alert to history and sends a test email if email is configured.
+  if (path === '/api/alerts/test' && method === 'POST') {
+    const deps = alertDeps(env, vault, ctx, []);
+    const key = await deps.key('RESEND_API_KEY');
+    let emailed = false;
+    if (key && deps.email) {
+      const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: 'Meridian Alerts <onboarding@resend.dev>', to: [deps.email], subject: 'Meridian test alert', text: 'This is a test alert from your Meridian Terminal proxy. Email delivery works.' }) });
+      emailed = r.ok;
+      if (!r.ok) log('alerts.test.email_failed', { status: r.status });
+    }
+    const item: Fired = { id: `test:${Date.now()}`, rule: 'test', type: 'system', at: Date.now(), title: 'Test alert', detail: emailed ? 'Email sent.' : key ? 'Email failed (check the Resend key and that ALERT_EMAIL is the Resend account email).' : 'No Resend key saved: banner only.', emailed };
+    const hist = JSON.parse((await deps.get('alert_history')) ?? '[]') as Fired[];
+    await deps.put('alert_history', JSON.stringify([item, ...hist].slice(0, 300)));
+    return json({ ok: true, emailed });
+  }
+
   // ----- Portfolio (17), read only -----
   if (path === '/api/portfolio' && method === 'GET') {
     const st = await readPortfolio(secretStore(vault));
@@ -372,10 +420,13 @@ export default {
     return out;
   },
   // Hourly portfolio refresh during US market hours (17.2). Cron in wrangler.toml; free plan allows 5 triggers.
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const vault = env.VAULT.get(env.VAULT.idFromName('main'));
-    const t = await vault.getSecret('rh_tokens');
-    if (!t.ok || !t.data) return;
-    ctx.waitUntil(refreshPortfolio(secretStore(vault)).then(() => undefined));
+    if (event.cron.startsWith('30 ')) {
+      const t = await vault.getSecret('rh_tokens');
+      if (t.ok && t.data) ctx.waitUntil(refreshPortfolio(secretStore(vault)).then(() => undefined));
+      return;
+    }
+    ctx.waitUntil(alertsNow(env, vault, ctx, event.cron.startsWith('*/10') ? 'market' : 'hourly').then(() => undefined, (e: unknown) => log('alerts.error', { name: e instanceof Error ? e.message.slice(0, 80) : 'error' })));
   },
 } satisfies ExportedHandler<Env>;

@@ -372,7 +372,7 @@ export class VaultCore {
   // ---------- Internal encrypted secrets (Robinhood OAuth tokens, portfolio snapshot; 17.2, 17.7) ----------
   // Never exposed by any generic route; only the Robinhood module reads them.
 
-  static SECRET_NAMES = new Set(['rh_client', 'rh_pending', 'rh_tokens', 'portfolio']);
+  static SECRET_NAMES = new Set(['rh_client', 'rh_pending', 'rh_tokens', 'portfolio', 'alert_state', 'alert_history']);
 
   async putSecret(name: string, value: string) {
     if (!VaultCore.SECRET_NAMES.has(name)) throw new VaultError(400, 'bad name');
@@ -391,6 +391,11 @@ export class VaultCore {
   deleteSecret(name: string) {
     if (!VaultCore.SECRET_NAMES.has(name)) throw new VaultError(400, 'bad name');
     this.sql.exec('DELETE FROM secrets WHERE name = ?', name);
+  }
+
+  /** Live records of one synced collection (server-side alert engine reads the owner's rules). */
+  listCollection(c: string): { id: string; v: unknown }[] {
+    return this.rows('SELECT id, v FROM sync WHERE c = ? AND x = 0', c).map((r) => ({ id: String(r.id), v: r.v == null ? null : JSON.parse(String(r.v)) }));
   }
 
   // ---------- Audit ----------

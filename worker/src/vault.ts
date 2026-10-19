@@ -121,6 +121,9 @@ export class Vault extends DurableObject<Env> {
   getBlob(name: string) {
     return this.wrap(() => this.core.getBlob(name));
   }
+  listCollection(c: string) {
+    return this.wrap(() => this.core.listCollection(c));
+  }
   putSecret(name: string, value: string) {
     return this.wrap(() => this.core.putSecret(name, value));
   }

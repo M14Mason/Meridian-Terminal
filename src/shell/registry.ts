@@ -177,7 +177,7 @@ export const FUNCTIONS: FunctionDef[] = [
   // ----- M9 to M11 -----
   F('SPLC', 'Supply chain', '3D supplier and customer graph from SEC filings.', { needsSecurity: true, milestone: 'M9', category: 'Maps', size: { w: 40, h: 44 }, load: () => import('../panels/SupplyPanel') }),
   F('PORT', 'Portfolio', 'Robinhood portfolio, read only.', { milestone: 'M10', category: 'Portfolio', mobileTab: 'portfolio', size: { w: 40, h: 44 }, load: () => import('../panels/PortfolioPanel') }),
-  F('ALRT', 'Alerts', 'Price, news, filing and system alerts.', { milestone: 'M11', category: 'Tools' }),
+  F('ALRT', 'Alerts', 'Price, news, filing and system alerts.', { milestone: 'M11', category: 'Tools', size: { w: 40, h: 36 }, load: () => import('../panels/AlertsPanel') }),
 ];
 
 const byCode = new Map<string, FunctionDef>();
