@@ -4,7 +4,7 @@ Last updated: 2026-10-19 (all milestones built)
 
 ## Current milestone
 
-ALL MILESTONES BUILT (M0 to M12). Only ongoing work: supply chain extraction for the 500 largest companies (Claude Code sub-agents, batches of 40, `docs/SUPPLY_EXTRACTION.md`; progress in `public/supply/progress.json`).
+ALL MILESTONES BUILT (M0 to M12). Supply chain extraction COMPLETE for the 500 largest companies (494 shards, 6 fund trusts skipped) on 2026-10-19. Any other company: EXTRACT WITH SONNET in SPLC. Refresh: SPLC flags newer 10-Ks and offers a Sonnet refresh.
 
 ## Completed milestones
 
@@ -26,7 +26,7 @@ ALL MILESTONES BUILT (M0 to M12). Only ongoing work: supply chain extraction for
 
 ## In progress
 
-* Supply chain: agents extract ranks up to 500 (fund trusts GLD, IAU, IBIT, GLDM, SLV, ETHA skipped). After each batch: `echo '[]' | npm run -s supply:save`, `node scripts/supply/geocode.mjs` (cached, 1 request/second for new places), commit.
+* Nothing in progress. To extend coverage later (for example ranks 501 to 1,000): `npm run supply:prep <from> <count>`, follow docs/SUPPLY_EXTRACTION.md, then `node scripts/supply/geocode.mjs`.
 
 ## Not built or partial (documented in docs/OMITTED.md)
 
@@ -92,7 +92,7 @@ ALL MILESTONES BUILT (M0 to M12). Only ongoing work: supply chain extraction for
 
 ## Next 5 steps
 
-1. Finish supply extraction to rank 500, geocode, commit.
+1. Owner: Dependabot PRs for GitHub Actions versions (checkout, setup-node, upload-pages-artifact) clear the Node 20 deprecation warning; review and merge when convenient.
 2. Owner: final checklist in docs/OWNER_SETUP.md (Resend key, Robinhood connect, test alert).
 3. Verify live: Robinhood OAuth on the real sign-in page (hosted callback accepted at registration on 2026-10-19), SAT with Copernicus keys, first real AI calls.
 4. Add earnings-beat predictions once a reliable free consensus source is confirmed.

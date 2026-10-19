@@ -114,7 +114,8 @@ export function reduce(l: Layout, a: Action): Layout {
       };
       return {
         panels: { ...l.panels, [id]: { id, code: a.code, security: a.security, link: null } },
-        frames: [...l.frames, frame],
+        // A maximized frame would hide the new one, so opening a frame restores any maximized frame.
+        frames: [...l.frames.map((f) => (f.maximized ? { ...f, maximized: false } : f)), frame],
         focused: fid,
       };
     }

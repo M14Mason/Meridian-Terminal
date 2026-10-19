@@ -95,3 +95,15 @@ describe('layout reducer', () => {
     expect(sanitizeLayout(broken)?.frames).toHaveLength(1);
   });
 });
+
+describe('maximized frames', () => {
+  it('opening a new frame restores a maximized one so the new frame is visible', () => {
+    let l = reduce(EMPTY_LAYOUT, { type: 'open', code: 'GP', security: 'AAPL', newFrame: true });
+    const first = l.frames[0]!.id;
+    l = reduce(l, { type: 'toggle', frameId: first, flag: 'maximized' });
+    expect(l.frames[0]!.maximized).toBe(true);
+    l = reduce(l, { type: 'open', code: 'SET', newFrame: true });
+    expect(l.frames.every((f) => !f.maximized)).toBe(true);
+    expect(l.focused).toBe(l.frames[1]!.id);
+  });
+});

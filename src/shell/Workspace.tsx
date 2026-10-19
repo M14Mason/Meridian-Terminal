@@ -26,6 +26,10 @@ export function Workspace({ layout, dispatch, run, popOut }: Props) {
   const colPx = width / COLS;
   const bottom = layout.frames.reduce((m, f) => Math.max(m, f.y + (f.minimized ? 2 : f.h)), 0);
   const maximized = layout.frames.some((f) => f.maximized);
+  // A maximized frame fills the visible area from the top, so reset any scroll the workspace had.
+  useEffect(() => {
+    if (maximized && ref.current) ref.current.scrollTop = 0;
+  }, [maximized]);
 
   return (
     <div ref={ref} className={`workspace${maximized ? ' workspace--max' : ''}`} role="application" aria-label="Panel workspace">

@@ -6,6 +6,7 @@ import { log } from './log';
 import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import { satImage, SITES } from './sat';
 import { runAi } from './ai';
+import { testAllKeys } from './keytest';
 import { finishAuth, snapshot, startAuth, type SecretStore } from './robinhood';
 import { runAlerts, type AlertDeps } from './alerts';
 import type { Fired } from '../../shared/alerts';
@@ -116,6 +117,7 @@ const callbackPage = (title: string, body: string, status = 200) =>
   new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${title}</title><body style="background:#000;color:#ffa028;font:14px monospace;padding:24px"><h1 style="font-size:16px">${title}</h1><p style="color:#fff">${body}</p></body>`, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'", ...SECURITY_HEADERS } });
 
 let lastManualRun = 0;
+let lastKeyTest = 0;
 function alertDeps(env: Env, vault: VaultStub, ctx: { waitUntil(p: Promise<unknown>): void }, rules: { id: string; v: unknown }[]): AlertDeps {
   const store = secretStore(vault);
   return {
@@ -246,6 +248,14 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   }
 
   if (path === '/api/keys' && method === 'GET') return fromResult(await vault.listKeys());
+  // TEST ALL (Settings > Keys): one small request per key, inside the proxy. Rate limited to protect free tiers.
+  if (path === '/api/keys/test' && method === 'POST') {
+    if (Date.now() - lastKeyTest < 30_000) return json({ error: 'wait 30 seconds between tests' }, 429);
+    lastKeyTest = Date.now();
+    const results = await testAllKeys(async (n) => { const r = await vault.resolveKey(n); return r.ok ? r.data : null; });
+    log('keys.test', { ok: results.filter((r) => r.status === 'ok').length, bad: results.filter((r) => r.status === 'rejected' || r.status === 'error').length });
+    return json({ at: Date.now(), results });
+  }
   const key = path.match(/^\/api\/keys\/([A-Z0-9_]{2,40})$/);
   if (key) {
     const name = key[1]!;

@@ -17,7 +17,7 @@ interface Props {
   popOut: (panelId: string) => void;
 }
 
-type Drag = { kind: 'move' | 'resize'; startX: number; startY: number; ox: number; oy: number };
+type Drag = { kind: 'move' | 'resize'; startX: number; startY: number; ox: number; oy: number; lastDx: number; lastDy: number };
 
 const HEADER_ROWS = 2;
 
@@ -50,23 +50,34 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
     if ((e.target as HTMLElement).closest('button, input, select')) return;
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag.current = { kind, startX: e.clientX, startY: e.clientY, ox: kind === 'move' ? frame.x : frame.w, oy: kind === 'move' ? frame.y : frame.h };
+    drag.current = { kind, startX: e.clientX, startY: e.clientY, ox: kind === 'move' ? frame.x : frame.w, oy: kind === 'move' ? frame.y : frame.h, lastDx: 0, lastDy: 0 };
   }
 
   function moveTo(e: RPointerEvent) {
     const d = drag.current;
     if (!d) return;
-    // Snap to grid units while dragging.
+    // A drag only continues while the main button is held. Without this, a drag whose pointerup was lost
+    // (window switch, context menu, gesture) would keep moving the frame on plain hover.
+    if (e.pointerType === 'mouse' && (e.buttons & 1) === 0) {
+      end(e);
+      return;
+    }
+    // Snap to grid units while dragging; only dispatch when the snapped position actually changes.
     const dx = Math.round((e.clientX - d.startX) / colPx);
     const dy = Math.round((e.clientY - d.startY) / ROW_PX);
+    if (dx === d.lastDx && dy === d.lastDy) return;
+    d.lastDx = dx;
+    d.lastDy = dy;
     if (d.kind === 'move') dispatch({ type: 'move', frameId: frame.id, x: d.ox + dx, y: d.oy + dy });
     else dispatch({ type: 'resize', frameId: frame.id, w: d.ox + dx, h: d.oy + dy });
   }
 
+  /** Ends a drag on pointerup, pointercancel or lost capture. Safe to call more than once. */
   function end(e: RPointerEvent) {
     if (!drag.current) return;
     drag.current = null;
-    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    const el = e.currentTarget as HTMLElement;
+    if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
   }
 
   // Tab drag: drop on another frame's header to stack, on empty space to unstack.
@@ -102,7 +113,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
       aria-label={`${fn?.title ?? active.code} panel`}
       onPointerDown={() => !focused && dispatch({ type: 'focus', frameId: frame.id })}
     >
-      <header className="frame__head" onPointerDown={(e) => start('move', e)} onPointerMove={moveTo} onPointerUp={end} onDoubleClick={() => dispatch({ type: 'toggle', frameId: frame.id, flag: 'maximized' })}>
+      <header className="frame__head" onPointerDown={(e) => start('move', e)} onPointerMove={moveTo} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onDoubleClick={() => dispatch({ type: 'toggle', frameId: frame.id, flag: 'maximized' })}>
         <div className="frame__tabs" role="tablist">
           {frame.tabs.map((id) => {
             const p = panels[id];
@@ -178,7 +189,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
         </div>
       )}
       {!frame.minimized && !frame.maximized && !frame.locked && (
-        <div className="frame__resize" onPointerDown={(e) => start('resize', e)} onPointerMove={moveTo} onPointerUp={end} aria-hidden />
+        <div className="frame__resize" onPointerDown={(e) => start('resize', e)} onPointerMove={moveTo} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} aria-hidden />
       )}
     </section>
   );
