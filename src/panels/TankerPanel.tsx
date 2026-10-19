@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as MlMap, GeoJSONSource } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
+import { unwrapAntimeridian } from '../lib/geo';
 import { category, CHOKEPOINTS, type Category, type Packed } from '../../shared/ais';
 import { connectAis, flagOf, portwatch, snapshot, type AisFrame, type StaticInfo, type ViewMsg } from '../data/adapters/ais';
 import { latest } from '../data/adapters/fred';
@@ -117,7 +118,7 @@ export default function TankerPanel(_: PanelProps) {
       const land = await import('world-atlas/land-110m.json');
       if (disposed) return;
       const topo = (land as unknown as { default: Parameters<typeof feature>[0] }).default;
-      const landGeo = feature(topo, (topo as unknown as { objects: { land: Parameters<typeof feature>[1] } }).objects.land);
+      const landGeo = unwrapAntimeridian(feature(topo, (topo as unknown as { objects: { land: Parameters<typeof feature>[1] } }).objects.land));
       const m = new ml.Map({
         container: box.current!,
         style: {

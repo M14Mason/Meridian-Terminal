@@ -106,4 +106,16 @@ describe('maximized frames', () => {
     expect(l.frames.every((f) => !f.maximized)).toBe(true);
     expect(l.focused).toBe(l.frames[1]!.id);
   });
+  it('running a command in the focused frame restores a different maximized frame', () => {
+    let l = reduce(EMPTY_LAYOUT, { type: 'open', code: 'PORT', newFrame: true });
+    l = reduce(l, { type: 'open', code: 'SET', newFrame: true });
+    const [a, b] = l.frames;
+    l = reduce(l, { type: 'toggle', frameId: a!.id, flag: 'maximized' });
+    l = reduce(l, { type: 'focus', frameId: b!.id });
+    expect(l.frames.every((f) => !f.maximized)).toBe(true);
+    l = reduce(l, { type: 'toggle', frameId: a!.id, flag: 'maximized' });
+    l = { ...l, focused: b!.id };
+    l = reduce(l, { type: 'open', code: 'TNKR' });
+    expect(l.frames.find((f) => f.id === a!.id)!.maximized).toBe(false);
+  });
 });

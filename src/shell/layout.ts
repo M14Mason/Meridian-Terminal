@@ -102,7 +102,9 @@ export function reduce(l: Layout, a: Action): Layout {
         const p = l.panels[focused.active]!;
         const next: PanelState = { ...p, code: a.code, security: a.security ?? p.security };
         const panels = { ...l.panels, [p.id]: next };
-        return { ...l, panels: a.security ? propagate({ ...l, panels }, p.link, a.security) : panels };
+        // Another frame left maximized would hide the panel the command just ran in.
+        const frames = l.frames.map((f) => (f.maximized && f.id !== focused.id ? { ...f, maximized: false } : f));
+        return { ...l, frames, panels: a.security ? propagate({ ...l, panels }, p.link, a.security) : panels };
       }
       const size = a.size ?? { w: 18, h: 18 };
       const id = a.id ?? newId('p');
@@ -137,7 +139,7 @@ export function reduce(l: Layout, a: Action): Layout {
     case 'focus': {
       if (!l.frames.some((f) => f.id === a.frameId)) return l;
       const z = topZ(l);
-      return { ...l, focused: a.frameId, frames: l.frames.map((f) => (f.id === a.frameId ? { ...f, z } : f)) };
+      return { ...l, focused: a.frameId, frames: l.frames.map((f) => (f.id === a.frameId ? { ...f, z } : f.maximized ? { ...f, maximized: false } : f)) };
     }
 
     case 'move':

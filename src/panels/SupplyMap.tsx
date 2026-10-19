@@ -3,6 +3,7 @@
 // Coordinates come from OpenStreetMap Nominatim (geocoded once, cached in the repo).
 import { useEffect, useRef, useState } from 'react';
 import { feature } from 'topojson-client';
+import { unwrapAntimeridian } from '../lib/geo';
 import type { Map as MlMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { lowPower, webgl2Available } from '../three/gl';
@@ -47,7 +48,7 @@ export function SupplyMap({ root, places, links, onPick }: { root: string; place
       const land = await import('world-atlas/land-110m.json');
       if (disposed) return;
       const topo = (land as unknown as { default: Parameters<typeof feature>[0] }).default;
-      const landGeo = feature(topo, (topo as unknown as { objects: { land: Parameters<typeof feature>[1] } }).objects.land);
+      const landGeo = unwrapAntimeridian(feature(topo, (topo as unknown as { objects: { land: Parameters<typeof feature>[1] } }).objects.land));
       const m = new ml.Map({
         container: box.current!,
         style: {
