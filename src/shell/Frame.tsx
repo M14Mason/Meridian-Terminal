@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 
 import { animateIn } from '../lib/motion';
 import { COLS, ROW_PX, type Action, type FrameState, type PanelState } from './layout';
 import { PanelHost } from './PanelHost';
+import { Explain } from '../ai/Explain';
 import { AgeBadge, type PanelMeta } from './panelMeta';
 import { findFunction } from './registry';
 import { LINK_COLORS, type LinkColor } from './types';
@@ -26,6 +27,8 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
   const tabDrag = useRef<{ id: string; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState(false);
   const [meta, setMeta] = useState<PanelMeta | null>(null);
+  const [explain, setExplain] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const active = panels[frame.active];
 
   useEffect(() => animateIn(ref.current), []);
@@ -130,7 +133,7 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
         <button className={`frame__link link--${active.link ?? 'none'}`} onClick={cycleLink} title="Link color: panels with the same color follow the same ticker" aria-label={`Link color ${active.link ?? 'none'}`}>
           ●
         </button>
-        <button className="frame__btn" disabled title="AI explain arrives in milestone M8" aria-label="Explain (not available yet)">
+        <button className="frame__btn" onClick={() => setExplain((x) => !x)} aria-pressed={explain} title="Explain this panel (AI)" aria-label="Explain this panel">
           ?
         </button>
         <button className="frame__btn" onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu} aria-label="Panel menu">
@@ -164,7 +167,8 @@ export function Frame({ frame, panels, focused, colPx, dispatch, run, popOut }: 
         )}
       </header>
       {!frame.minimized && (
-        <div className="frame__body">
+        <div className="frame__body" ref={bodyRef}>
+          {explain && <Explain key={active.id} getBody={() => bodyRef.current} title={fn?.title ?? active.code} description={fn?.description ?? ''} code={active.code} security={active.security} meta={meta} onClose={() => setExplain(false)} />}
           <PanelHost onMeta={setMeta} panelId={active.id} code={active.code} security={active.security} args={active.args ?? {}} run={(c, o) => run(c, { fromPanel: active.id, replace: o?.replace })} />
         </div>
       )}

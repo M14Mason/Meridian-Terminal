@@ -6,6 +6,7 @@ import { useData } from '../data/useData';
 import { downloadCsv, fmt, fmtBig, fmtPct } from '../lib/format';
 import { DataStatus } from '../shell/DataStatus';
 import type { PanelProps } from '../shell/types';
+import { takeHandOff } from '../state/handoff';
 import { sync, useCollection } from '../state/sync';
 
 interface Saved { name: string; filters: Filter[]; sort: FieldKey; desc: boolean }
@@ -19,10 +20,11 @@ const show = (r: Row, k: FieldKey) => {
 
 export default function ScreenerPanel({ run }: PanelProps) {
   const st = useData('eqs:universe', screenerUniverse, { source: 'SEC XBRL frames, Massive EOD', everyMs: 6 * 3600_000 });
-  const [filters, setFilters] = useState<Filter[]>(PRESETS[0]!.filters);
-  const [sort, setSort] = useState<FieldKey>(PRESETS[0]!.sort);
-  const [desc, setDesc] = useState(PRESETS[0]!.desc);
-  const [preset, setPreset] = useState(PRESETS[0]!.name);
+  const [init] = useState(() => takeHandOff<Saved>('EQS') ?? PRESETS[0]!);
+  const [filters, setFilters] = useState<Filter[]>(init.filters);
+  const [sort, setSort] = useState<FieldKey>(init.sort);
+  const [desc, setDesc] = useState(init.desc);
+  const [preset, setPreset] = useState(init.name);
   const saved = useCollection<Saved>('screens').filter((s) => s.id.startsWith('eqs:'));
   const rows = useMemo(() => (st.data ? screen(st.data.rows, filters, sort, desc) : []), [st.data, filters, sort, desc]);
   const cols: FieldKey[] = ['mcap', 'price', 'pe', 'ps', 'pb', 'fcfYield', 'netMargin', 'roe', 'de', 'revGrowth'];

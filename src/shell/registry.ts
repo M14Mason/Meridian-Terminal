@@ -166,7 +166,7 @@ export const FUNCTIONS: FunctionDef[] = [
   F('RPT', 'PDF report', 'Export the current panels as a PDF report.', { milestone: 'M12', category: 'Tools' }),
 
   // ----- M8 AI -----
-  F('ASK', 'Ask (AI search)', 'Plain-English search and screener. Shows the parsed query first.', { milestone: 'M8', category: 'AI' }),
+  F('ASK', 'Ask (AI search)', 'Plain-English search and screener. Shows the parsed query first.', { milestone: 'M8', category: 'AI', size: { w: 30, h: 22 }, load: () => import('../panels/AskPanel') }),
   F('PRED', 'Predictions', 'Model ranges and probabilities with inputs and track record.', { needsSecurity: true, milestone: 'M8', category: 'AI' }),
   F('VAL', 'Valuation', 'Code DCF and multiples next to the AI opinion.', { needsSecurity: true, milestone: 'M8', category: 'AI' }),
   F('SCOR', 'Scoreboard', 'Prediction hit rate, Brier score and calibration.', { milestone: 'M8', category: 'AI' }),

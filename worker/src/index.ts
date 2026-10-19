@@ -5,6 +5,7 @@ import type { Env } from './env';
 import { log } from './log';
 import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
 import { satImage, SITES } from './sat';
+import { runAi } from './ai';
 import type { Result } from './vault';
 
 export { Vault } from './vault';
@@ -196,6 +197,18 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return fromResult(await vault.usage(days));
   }
   if (path === '/api/audit' && method === 'GET') return fromResult(await vault.audit(100));
+
+  // AI layer (16): POST {feature, input, fresh?}. Prompts and models are fixed server side.
+  if (path === '/api/ai' && method === 'POST') {
+    const body = await readJson(req, 20 * 1024);
+    const resolve = async (n: string) => {
+      const r = await vault.resolveKey(n);
+      return r.ok ? r.data : null;
+    };
+    const out = await runAi(body, resolve, (f, m, i, o, usd) => vault.recordUsage(f, m, i, o, usd), ctx);
+    log('ai', { feature: typeof body?.feature === 'string' ? body.feature.slice(0, 20) : '?', status: out.status });
+    return json(out.body, out.status);
+  }
 
   // Satellite images (SAT): preset sites only.
   if (path === '/api/sat/sites' && method === 'GET') return json(Object.entries(SITES).map(([id, v]) => ({ id, ...v })));
