@@ -359,6 +359,7 @@ export async function fetchUpstream(
   // POST searches are cached by a hash of the body. Built before auth, so keys never end up in cache keys.
   const bodyTag = body === undefined ? '' : `/__post/${[...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body)))].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('')}`;
   const cacheKey = new Request(`https://cache.meridian.invalid/${provider.id}${url.pathname}${url.search}${bodyTag}`);
+  const staleKey = new Request(`https://stale.meridian.invalid/${provider.id}${url.pathname}${url.search}${bodyTag}`);
   const cache = (caches as unknown as { default: Cache }).default;
   const hit = await cache.match(cacheKey);
   if (hit) {
@@ -391,7 +392,19 @@ export async function fetchUpstream(
     }
     if (body !== undefined) headers.set('content-type', 'application/json');
     // Timeout: a hung upstream would otherwise hold every coalesced request for the same data forever.
-    const r = await fetch(target.toString(), { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+    const go = () => fetch(target.toString(), { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
+    let r = await go();
+    // Rate limited (Workers share egress IPs, so other sites can use up a provider's per-IP limit): one short retry.
+    if (r.status === 429) {
+      const wait = Math.min(3000, Math.max(500, Number(r.headers.get('retry-after') ?? '1') * 1000 || 1000));
+      await new Promise((ok) => setTimeout(ok, wait));
+      r = await go();
+    }
+    // Still failing: serve the last good copy (kept 24 h) instead of an error. Its fetchedAt shows its real age.
+    if (r.status === 429 || r.status >= 500) {
+      const old = await cache.match(staleKey);
+      if (old) return { status: 200, body: await old.arrayBuffer(), contentType: old.headers.get('content-type') ?? 'application/json', fetchedAt: Number(old.headers.get('x-fetched-at') ?? 0) || Date.now() };
+    }
     const out: Cached = {
       status: r.status >= 300 && r.status < 400 ? 502 : r.status,
       body: await r.arrayBuffer(),
@@ -406,7 +419,8 @@ export async function fetchUpstream(
           'x-fetched-at': String(out.fetchedAt),
         },
       });
-      ctx.waitUntil(cache.put(cacheKey, stored));
+      const backup = new Response(out.body, { headers: { 'content-type': out.contentType, 'cache-control': 'public, max-age=86400', 'x-fetched-at': String(out.fetchedAt) } });
+      ctx.waitUntil(Promise.all([cache.put(cacheKey, stored), cache.put(staleKey, backup)]));
     }
     return out;
   })();

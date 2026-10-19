@@ -46,6 +46,8 @@ const OVERLAYS: [Overlay, string][] = [
 
 interface Point { t: number; p: number }
 interface Drawing { kind: 'trend' | 'hline' | 'fib'; a: Point; b?: Point }
+const px2 = (p: number) => (p >= 100 ? p.toFixed(1) : p.toFixed(2));
+const drawLabel = (d: Drawing) => (d.kind === 'hline' ? `H ${px2(d.a.p)}` : `${d.kind === 'fib' ? 'FIB' : 'TREND'} ${px2(d.a.p)}→${d.b ? px2(d.b.p) : '?'}`);
 
 export default function ChartPanel({ security, code }: PanelProps) {
   const sym = security ?? 'SPY';
@@ -347,9 +349,22 @@ export default function ChartPanel({ security, code }: PanelProps) {
         <button aria-pressed={tool === 'trend'} onClick={() => { setPending(null); setTool(tool === 'trend' ? null : 'trend'); }} title="Trend line: click two points">TREND</button>
         <button aria-pressed={tool === 'hline'} onClick={() => setTool(tool === 'hline' ? null : 'hline')} title="Horizontal line: click once">HLINE</button>
         <button aria-pressed={tool === 'fib'} onClick={() => { setPending(null); setTool(tool === 'fib' ? null : 'fib'); }} title="Fibonacci: click swing start then end">FIB</button>
-        {drawings.length > 0 && <button onClick={() => window.confirm(`Clear ${drawings.length} drawing(s) on ${sym}?`) && saveDrawings([])}>CLEAR</button>}
         <button aria-pressed={replay != null} onClick={() => { setPlaying(false); setReplay(replay == null ? Math.max(0, all.length - show) : null); }}>REPLAY</button>
       </div>
+      )}
+      {(drawings.length > 0 || overlays.has('fib') || pending) && (
+        <div className="toolbar" aria-label="Drawings">
+          <span className="muted">DRAWINGS</span>
+          {pending && <button onClick={() => { setPending(null); setTool(null); }} title="Cancel the drawing in progress">CANCEL {tool?.toUpperCase()} ×</button>}
+          {drawings.map((d, i) => (
+            <button key={i} onClick={() => saveDrawings(drawings.filter((_, j) => j !== i))} title="Remove this drawing" aria-label={`Remove ${drawLabel(d)}`}>
+              {drawLabel(d)} ×
+            </button>
+          ))}
+          {overlays.has('fib') && <button onClick={() => toggle('fib')} title="Turn off the Auto Fib study">AUTO FIB ×</button>}
+          {drawings.length > 0 && <button onClick={() => saveDrawings(drawings.slice(0, -1))} title="Remove the last drawing">UNDO</button>}
+          {drawings.length > 1 && <button onClick={() => window.confirm(`Clear all ${drawings.length} drawings on ${sym}?`) && saveDrawings([])}>CLEAR ALL</button>}
+        </div>
       )}
       {showMenu && (
         <div className="toolbar">
