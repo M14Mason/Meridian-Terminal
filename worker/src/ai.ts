@@ -40,6 +40,10 @@ const SPEC: Record<Feature, { task: string; schema: string }> = {
     task: 'Summarize the filing excerpt for an investor. If a previous excerpt is included, focus on what changed. Judge whether the tone is more cautious, similar or more confident than before (or unclear if there is no previous text).',
     schema: '{"summary": string, "changes": string[], "risks": string[], "tone": "more cautious"|"similar"|"more confident"|"unclear"}',
   },
+  supply: {
+    task: 'Extract supply chain relationships from the annual report excerpts. Include ONLY counterparties the text names or clearly describes (for unnamed ones use a label like "Largest customer (unnamed)" and include it only if a share is disclosed). k is what the counterparty is TO this company: supplier, customer or partner. share = percent of this company revenue (customers) or purchases (suppliers) ONLY if stated. conf: 0.9 named with a share or explicit contract, 0.8 named, 0.6 unnamed. ev = an exact quote under 15 words from the text. Facilities from the PROPERTIES section only. gaps = what is not disclosed. Never add relationships from your own knowledge.',
+    schema: '{"industry": string, "rels": [{"n": string, "k": "supplier"|"customer"|"partner", "what": string, "share"?: number, "geo"?: string, "conf": number 0-1, "ev": string}], "facilities": [{"type": string, "place": string, "country": string}], "gaps": string}',
+  },
   cmp: {
     task: 'You manage a HYPOTHETICAL paper portfolio for research and education. From the CANDIDATES table only, pick 15 to 30 positions with weights in percent that sum to about 100 (max 15% each). Diversify across sectors. Each thesis must cite only numbers from the table. If CURRENT holdings are given, keep turnover reasonable and say why positions change.',
     schema: '{"positions": [{"t": string (ticker from CANDIDATES), "w": number (percent), "thesis": string}], "notes": string (strategy and changes)}',

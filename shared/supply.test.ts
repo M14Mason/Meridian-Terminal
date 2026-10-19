@@ -27,3 +27,15 @@ describe('supply', () => {
     expect(r.body).not.toContain('boilerplate');
   });
 });
+
+import { forceLayout } from './supply';
+describe('forceLayout', () => {
+  it('places linked nodes closer than unlinked ones and is deterministic', () => {
+    const ids = ['A', 'B', 'C', 'D'];
+    const a = forceLayout(ids, [['A', 'B'], ['C', 'D']], 200);
+    const b = forceLayout(ids, [['A', 'B'], ['C', 'D']], 200);
+    expect(a.get('A')).toEqual(b.get('A'));
+    const dist = (x: string, y: string) => Math.hypot(...a.get(x)!.map((v, i) => v - a.get(y)![i]!));
+    expect(dist('A', 'B')).toBeLessThan(dist('A', 'C'));
+  });
+});

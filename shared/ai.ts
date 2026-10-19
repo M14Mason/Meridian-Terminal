@@ -76,7 +76,7 @@ export function extractJson(text: string): unknown {
 const str = (max = 600): Schema => ({ t: 'string', max });
 const strs = (max = 8, len = 400): Schema => ({ t: 'array', of: str(len), max });
 
-export type Feature = 'explain' | 'ask' | 'valuation' | 'predict' | 'brief' | 'critic' | 'filing' | 'cmp';
+export type Feature = 'explain' | 'ask' | 'valuation' | 'predict' | 'brief' | 'critic' | 'filing' | 'cmp' | 'supply';
 
 export interface FeatureSpec { model: ModelId; maxTokens: number; version: string; cacheTtl: number; schema: Schema; maxInput: number }
 
@@ -101,6 +101,15 @@ export const FEATURES: Record<Feature, FeatureSpec> = {
   brief: { model: MODELS.haiku, maxTokens: 900, version: 'brief-1', cacheTtl: 12 * 3600, maxInput: 12000, schema: { t: 'object', props: { headline: str(200), bullets: strs(8), watch: strs(5) } } },
   critic: { model: MODELS.sonnet, maxTokens: 1200, version: 'critic-1', cacheTtl: 24 * 3600, maxInput: 12000, schema: { t: 'object', props: { strengths: strs(5), mistakes: strs(6), patterns: strs(5), rules: strs(5) } } },
   filing: { model: MODELS.haiku, maxTokens: 900, version: 'filing-1', cacheTtl: 30 * 86400, maxInput: 30000, schema: { t: 'object', props: { summary: str(800), changes: strs(8), risks: strs(6), tone: { t: 'string', enum: ['more cautious', 'similar', 'more confident', 'unclear'] } } } },
+  supply: {
+    model: MODELS.sonnet, maxTokens: 2500, version: 'supply-1', cacheTtl: 90 * 86400, maxInput: 30000,
+    schema: { t: 'object', props: {
+      industry: str(120),
+      rels: { t: 'array', max: 60, of: { t: 'object', optional: ['share', 'geo'], props: { n: str(120), k: { t: 'string', enum: ['supplier', 'customer', 'partner'] }, what: str(160), share: { t: 'number', min: 0, max: 100 }, geo: str(80), conf: { t: 'number', min: 0, max: 1 }, ev: str(140) } } },
+      facilities: { t: 'array', max: 30, of: { t: 'object', props: { type: str(40), place: str(120), country: str(60) } } },
+      gaps: str(400),
+    } },
+  },
   cmp: {
     model: MODELS.sonnet, maxTokens: 3000, version: 'cmp-1', cacheTtl: 3600, maxInput: 14000,
     schema: { t: 'object', props: { positions: { t: 'array', max: 30, of: { t: 'object', props: { t: str(10), w: { t: 'number', min: 0.5, max: 15 }, thesis: str(300) } } }, notes: str(800) } },

@@ -175,7 +175,7 @@ export const FUNCTIONS: FunctionDef[] = [
   F('BRIF', 'Morning brief', 'Daily AI brief.', { aliases: ['BRIEF'], milestone: 'M8', category: 'AI', size: { w: 30, h: 30 }, load: () => import('../panels/AiPanels') }),
 
   // ----- M9 to M11 -----
-  F('SPLC', 'Supply chain', '3D supplier and customer graph from SEC filings.', { needsSecurity: true, milestone: 'M9', category: 'Maps' }),
+  F('SPLC', 'Supply chain', '3D supplier and customer graph from SEC filings.', { needsSecurity: true, milestone: 'M9', category: 'Maps', size: { w: 40, h: 44 }, load: () => import('../panels/SupplyPanel') }),
   F('PORT', 'Portfolio', 'Robinhood portfolio, read only.', { milestone: 'M10', category: 'Portfolio', mobileTab: 'portfolio' }),
   F('ALRT', 'Alerts', 'Price, news, filing and system alerts.', { milestone: 'M11', category: 'Tools' }),
 ];

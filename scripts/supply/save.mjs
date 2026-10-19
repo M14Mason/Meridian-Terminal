@@ -3,7 +3,7 @@
 // Fills cik, name, filing and src from the prep header, validates (schema + source + short evidence), writes
 // public/supply/c/<T>.json and updates public/supply/progress.json. Invalid shards are reported, not written.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { checkShard } from '../../shared/supply.ts';
+import { checkShard, edges, toRows } from '../../shared/supply.ts';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 mkdirSync('public/supply/c', { recursive: true });
@@ -30,5 +30,8 @@ for (const x of input) {
   console.log(`${x.t}: saved ${shard.rels.length} relationships`);
 }
 prog.updated = today;
+// Rebuild the compact edge index from every saved shard.
+const shards = readdirSync('public/supply/c').filter((n) => n.endsWith('.json')).map((n) => JSON.parse(readFileSync(`public/supply/c/${n}`, 'utf8')));
+writeFileSync('public/supply/edges.json', JSON.stringify({ at: today, companies: shards.length, edges: toRows(edges(shards)) }));
 writeFileSync(progPath, JSON.stringify(prog, null, 1));
 console.log(`progress: ${prog.done.length} companies`);

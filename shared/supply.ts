@@ -145,3 +145,47 @@ export function disrupt(all: Edge[], root: string, hops = 3): Map<string, number
   }
   return impact;
 }
+
+/** Deterministic 3D force layout (springs on edges, repulsion between nodes). Small graphs only (<= 300 nodes). */
+export function forceLayout(ids: string[], links: [string, string][], iters = 300): Map<string, [number, number, number]> {
+  const n = ids.length;
+  const idx = new Map(ids.map((id, i) => [id, i]));
+  // Seeded positions on a sphere (golden spiral) so layouts are stable between renders.
+  const p = ids.map((_, i) => {
+    const y = 1 - (2 * (i + 0.5)) / Math.max(1, n);
+    const r = Math.sqrt(1 - y * y);
+    const th = i * 2.399963;
+    return [Math.cos(th) * r * 2, y * 2, Math.sin(th) * r * 2];
+  });
+  const L = links.map(([a, b]) => [idx.get(a), idx.get(b)]).filter((x): x is [number, number] => x[0] != null && x[1] != null && x[0] !== x[1]);
+  const k = 0.9;
+  for (let it = 0; it < iters; it++) {
+    const t = 0.1 * (1 - it / iters) + 0.005;
+    const d = p.map(() => [0, 0, 0]);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const dx = p[i]![0]! - p[j]![0]!, dy = p[i]![1]! - p[j]![1]!, dz = p[i]![2]! - p[j]![2]!;
+      const dist = Math.max(0.05, Math.hypot(dx, dy, dz));
+      const f = (k * k) / dist / dist;
+      d[i]![0]! += dx * f; d[i]![1]! += dy * f; d[i]![2]! += dz * f;
+      d[j]![0]! -= dx * f; d[j]![1]! -= dy * f; d[j]![2]! -= dz * f;
+    }
+    for (const [a, b] of L) {
+      const dx = p[a]![0]! - p[b]![0]!, dy = p[a]![1]! - p[b]![1]!, dz = p[a]![2]! - p[b]![2]!;
+      const dist = Math.max(0.05, Math.hypot(dx, dy, dz));
+      const f = dist / k;
+      d[a]![0]! -= dx * f; d[a]![1]! -= dy * f; d[a]![2]! -= dz * f;
+      d[b]![0]! += dx * f; d[b]![1]! += dy * f; d[b]![2]! += dz * f;
+    }
+    for (let i = 0; i < n; i++) {
+      const len = Math.max(1e-9, Math.hypot(d[i]![0]!, d[i]![1]!, d[i]![2]!));
+      const s = Math.min(len, t) / len;
+      for (let c = 0; c < 3; c++) p[i]![c]! += d[i]![c]! * s - p[i]![c]! * 0.002;
+    }
+  }
+  return new Map(ids.map((id, i) => [id, p[i] as [number, number, number]]));
+}
+
+/** Compact edge index served as public/supply/edges.json: [from, to, what, share, conf, via]. */
+export type EdgeRow = [string, string, string, number | null, number, string];
+export const toRows = (e: Edge[]): EdgeRow[] => e.map((x) => [x.from, x.to, x.what, x.share, x.conf, x.via]);
+export const fromRows = (rows: EdgeRow[]): Edge[] => rows.map(([from, to, what, share, conf, via]) => ({ from, to, kind: 'supplies', what, share, conf, ev: '', src: '', via }));
