@@ -26,6 +26,7 @@ async function getToken(resolve: KeyResolver): Promise<string | null> {
   const [id, secret] = await Promise.all([resolve('COPERNICUS_CLIENT_ID'), resolve('COPERNICUS_CLIENT_SECRET')]);
   if (!id || !secret) return null;
   const r = await fetch('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token', {
+    signal: AbortSignal.timeout(20_000),
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret }),
@@ -59,6 +60,7 @@ export async function satImage(site: string, date: string, resolve: KeyResolver,
     evalscript: EVAL,
   };
   const r = await fetch('https://sh.dataspace.copernicus.eu/api/v1/process', {
+    signal: AbortSignal.timeout(60_000),
     method: 'POST',
     headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json', accept: 'image/png' },
     body: JSON.stringify(body),

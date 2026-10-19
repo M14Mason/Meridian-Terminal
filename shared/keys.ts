@@ -23,6 +23,7 @@ export const KEY_SPECS: readonly KeySpec[] = [
   { name: 'COPERNICUS_CLIENT_ID', label: 'Copernicus client ID (optional)', help: 'Sentinel Hub OAuth client, for satellite images (SAT).' },
   { name: 'COPERNICUS_CLIENT_SECRET', label: 'Copernicus client secret (optional)', help: 'Pairs with the client ID above.' },
   { name: 'API_NINJAS_KEY', label: 'API Ninjas (optional)', help: 'Earnings call transcripts.' },
+  { name: 'GFW_API_TOKEN', label: 'Global Fishing Watch token (optional)', help: 'Satellite AIS vessel presence and radar ship detections (4 to 5 days delayed), for Gulf and open-ocean coverage in TNKR.' },
   { name: 'RESEND_API_KEY', label: 'Resend (optional)', help: 'Only if Cloudflare email cannot send alerts.' },
 ];
 

@@ -31,6 +31,7 @@ async function clientId(store: SecretStore, redirect: string): Promise<string> {
     if (c.redirect === redirect) return c.id;
   }
   const r = await fetch(RH.register, {
+    signal: AbortSignal.timeout(20_000),
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ client_name: 'Meridian Terminal (personal, read only)', redirect_uris: [redirect], grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'], token_endpoint_auth_method: 'none' }),
@@ -55,7 +56,7 @@ export async function startAuth(store: SecretStore, origin: string, deviceId: st
 }
 
 async function tokenRequest(form: Record<string, string>): Promise<Tokens> {
-  const r = await fetch(RH.token, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams(form) });
+  const r = await fetch(RH.token, { method: 'POST', signal: AbortSignal.timeout(20_000), headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams(form) });
   if (!r.ok) throw new Error(`token endpoint returned ${r.status}`);
   const j = (await r.json()) as { access_token?: string; refresh_token?: string; expires_in?: number };
   if (!j.access_token) throw new Error('token endpoint returned no access token');
@@ -99,7 +100,7 @@ class Mcp {
     const headers: Record<string, string> = { authorization: `Bearer ${this.token}`, 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'mcp-protocol-version': '2025-06-18' };
     if (this.session) headers['mcp-session-id'] = this.session;
     const id = notify ? undefined : ++this.id;
-    const r = await fetch(RH.mcp, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', ...(id ? { id } : {}), method, params }) });
+    const r = await fetch(RH.mcp, { method: 'POST', signal: AbortSignal.timeout(30_000), headers, body: JSON.stringify({ jsonrpc: '2.0', ...(id ? { id } : {}), method, params }) });
     if (r.status === 401) throw new AuthError();
     if (!r.ok && !(notify && r.status === 202)) throw new Error(`MCP ${method} returned ${r.status}`);
     this.session = r.headers.get('mcp-session-id') ?? this.session;

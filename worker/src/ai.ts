@@ -69,14 +69,20 @@ type Msg = { role: 'user' | 'assistant'; content: unknown };
  * Range and length rules are checked by validate().
  */
 async function call(key: string, model: string, maxTokens: number, system: string, messages: Msg[], schema: Schema) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  let r: Response;
+  try {
+    r = await fetch('https://api.anthropic.com/v1/messages', {
+    signal: AbortSignal.timeout(120_000),
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model, max_tokens: maxTokens, system, messages,
       output_config: { format: { type: 'json_schema', schema: toJsonSchema(schema) } },
     }),
-  });
+    });
+  } catch (e) {
+    throw new AiError(504, e instanceof Error && e.name === 'TimeoutError' ? 'anthropic timed out after 120 s' : 'could not reach anthropic');
+  }
   if (!r.ok) {
     const status = r.status;
     // Anthropic's error message explains bad requests; it never contains the key. Keep only the message.

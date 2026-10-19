@@ -36,6 +36,7 @@ async function sendEmail(d: AlertDeps, subject: string, text: string): Promise<b
   const key = await d.key('RESEND_API_KEY');
   if (!key || !d.email) return false;
   const r = await fetch('https://api.resend.com/emails', {
+    signal: AbortSignal.timeout(15_000),
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
     body: JSON.stringify({ from: 'Meridian Alerts <onboarding@resend.dev>', to: [d.email], subject: subject.slice(0, 120), text: `${text}\n\nPersonal research tool. Not financial advice.` }),

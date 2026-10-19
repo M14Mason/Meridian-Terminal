@@ -374,7 +374,13 @@ export async function fetchUpstream(
 
   const k = cacheKey.url;
   const pending = inflight.get(k);
-  if (pending) return { res: await pending, cache: 'COALESCED' };
+  if (pending) {
+    try {
+      return { res: await pending, cache: 'COALESCED' };
+    } catch {
+      return { error: `${provider.id} unreachable`, status: 504 };
+    }
+  }
 
   const p = (async (): Promise<Cached> => {
     const target = new URL(url.toString());
@@ -383,7 +389,8 @@ export async function fetchUpstream(
       return { status: 424, body: new TextEncoder().encode('{"error":"provider key not set"}').buffer as ArrayBuffer, contentType: 'application/json', fetchedAt: Date.now() };
     }
     if (body !== undefined) headers.set('content-type', 'application/json');
-    const r = await fetch(target.toString(), { method, headers, body, redirect: 'manual' });
+    // Timeout: a hung upstream would otherwise hold every coalesced request for the same data forever.
+    const r = await fetch(target.toString(), { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(25_000) });
     const out: Cached = {
       status: r.status >= 300 && r.status < 400 ? 502 : r.status,
       body: await r.arrayBuffer(),
@@ -405,6 +412,9 @@ export async function fetchUpstream(
   inflight.set(k, p);
   try {
     return { res: await p, cache: 'MISS' };
+  } catch (e) {
+    const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
+    return { error: `${provider.id} ${timedOut ? 'timed out after 25 s' : 'unreachable'}`, status: 504 };
   } finally {
     inflight.delete(k);
   }
