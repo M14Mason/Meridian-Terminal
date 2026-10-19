@@ -118,7 +118,7 @@ const SPECS: Spec[] = [
   {
     id: 'secwww',
     host: 'www.sec.gov',
-    paths: [/^\/files\/company_tickers(_exchange)?\.json$/, /^\/cgi-bin\/browse-edgar$/, /^\/Archives\/edgar\/data\/\d{1,10}\/\d{18}\/[\w.-]{1,120}$/, /^\/Archives\/edgar\/data\/\d{1,10}\/\d{18}\/index\.json$/],
+    paths: [/^\/files\/company_tickers(_exchange|_mf)?\.json$/, /^\/cgi-bin\/browse-edgar$/, /^\/Archives\/edgar\/data\/\d{1,10}\/\d{18}\/[\w.-]{1,120}$/, /^\/Archives\/edgar\/data\/\d{1,10}\/\d{18}\/index\.json$/],
     auth: { kind: 'none' },
     headers: SEC_UA,
     ttl: [[/company_tickers/, DAY], [/browse-edgar/, 120], [/./, 7 * DAY]],

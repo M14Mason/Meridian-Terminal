@@ -12,8 +12,9 @@ function proxyOrigin(): string {
   try {
     const u = new URL(url);
     const ws = `${u.protocol === 'https:' ? 'wss:' : 'ws:'}//${u.host}`;
-    // Plus two keyless government APIs that block Cloudflare but allow CORS (src/data/adapters/direct.ts).
-    return `${u.origin} ${ws} https://api.usaspending.gov https://api.fiscaldata.treasury.gov`;
+    // Plus two keyless government APIs that block Cloudflare but allow CORS (src/data/adapters/direct.ts),
+    // and the public Bluesky Jetstream firehose for SOCL (read only, no account).
+    return `${u.origin} ${ws} https://api.usaspending.gov https://api.fiscaldata.treasury.gov wss://jetstream1.us-east.bsky.network wss://jetstream2.us-east.bsky.network`;
   } catch {
     throw new Error('VITE_PROXY_URL is not a valid URL');
   }
