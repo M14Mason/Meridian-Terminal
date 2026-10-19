@@ -19,8 +19,8 @@ import { hmacHex, timingSafeEqual } from './crypto';
 
 const MAX_BODY = 16 * 1024;
 // Relay instance name. Bump it to start a fresh relay on the new code at once (a running instance keeps its
-// old code while devices stay connected). v2: 2026-10-19, AISStream frames arrive as Blobs.
-const AIS_INSTANCE = 'global-v2';
+// old code while devices stay connected). v2: AISStream frames arrive as Blobs. v3: permessage-deflate compression (2026-10-19).
+const AIS_INSTANCE = 'global-v3';
 // Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
 const SYNC_MAX_BODY = 1024 * 1024;
 
@@ -210,7 +210,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const k = await vault.resolveKey('AISSTREAM_API_KEY');
     const key = k.ok ? k.data : null;
     if (!key) return json({ error: 'no AISStream key' });
-    const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket' } });
+    const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket', 'Sec-WebSocket-Extensions': 'permessage-deflate' } });
     const ws = resp.webSocket;
     if (!ws) return json({ error: `upgrade failed ${resp.status}` });
     ws.accept();

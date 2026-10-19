@@ -22,7 +22,7 @@ function byStatus(status: number, okDetail: string): [KeyStatus, string] {
 }
 
 async function aisTest(key: string): Promise<[KeyStatus, string]> {
-  const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket' } });
+  const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket', 'Sec-WebSocket-Extensions': 'permessage-deflate' } });
   const ws = resp.webSocket;
   if (!ws) return ['error', `could not open the stream (HTTP ${resp.status})`];
   ws.accept();

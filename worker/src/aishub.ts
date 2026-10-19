@@ -110,7 +110,8 @@ export class AisHub extends DurableObject<Env> {
       return;
     }
     try {
-      const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket' } });
+      // Ask for permessage-deflate: AISStream drops messages over a bandwidth cap on uncompressed connections (Sept 2026).
+      const resp = await fetch('https://stream.aisstream.io/v0/stream', { headers: { Upgrade: 'websocket', 'Sec-WebSocket-Extensions': 'permessage-deflate' } });
       const ws = resp.webSocket;
       if (!ws) throw new Error(`upgrade failed ${resp.status}`);
       ws.accept();
