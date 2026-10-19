@@ -4,6 +4,7 @@ import { KEY_NAMES } from '../../shared/keys';
 import type { Env } from './env';
 import { log } from './log';
 import { fetchUpstream, PROVIDERS, buildUpstreamUrl } from './upstream';
+import { satImage, SITES } from './sat';
 import type { Result } from './vault';
 
 export { Vault } from './vault';
@@ -195,6 +196,19 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return fromResult(await vault.usage(days));
   }
   if (path === '/api/audit' && method === 'GET') return fromResult(await vault.audit(100));
+
+  // Satellite images (SAT): preset sites only.
+  if (path === '/api/sat/sites' && method === 'GET') return json(Object.entries(SITES).map(([id, v]) => ({ id, ...v })));
+  const sat = path.match(/^\/api\/sat\/([a-z]{1,20})$/);
+  if (sat && method === 'GET') {
+    const resolve = async (n: string) => {
+      const r = await vault.resolveKey(n);
+      return r.ok ? r.data : null;
+    };
+    const res = await satImage(sat[1]!, url.searchParams.get('date') ?? '', resolve, ctx);
+    if (res.headers.get('content-type') === 'image/png') return new Response(res.body, { status: 200, headers: { 'content-type': 'image/png', 'x-fetched-at': res.headers.get('x-fetched-at') ?? '', ...SECURITY_HEADERS } });
+    return json(await res.json(), res.status);
+  }
 
   // Upstream gateway: /api/up/<provider>/<path>
   const up = path.match(/^\/api\/up\/([a-z0-9-]+)(\/.*)$/);

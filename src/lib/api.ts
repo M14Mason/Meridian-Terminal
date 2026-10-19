@@ -30,7 +30,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; text?: boolean } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean; text?: boolean; blob?: boolean } = {}): Promise<T> {
   if (!PROXY_URL) throw new ApiError(0, 'proxy not configured');
   const headers: Record<string, string> = {};
   if (init.body !== undefined) headers['content-type'] = 'application/json';
@@ -47,6 +47,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     throw new ApiError(0, 'network error');
   }
   if (init.text && res.ok) return (await res.text()) as T;
+  if (init.blob && res.ok) return (await res.blob()) as T;
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) {
     // A revoked or unknown token drops the device back to the pairing screen.

@@ -198,7 +198,7 @@ const SPECS: Spec[] = [
       paths: [/^\/data\/group\/otcMarket\/name\/(consolidatedShortInterest|weeklySummary|regShoDaily)$/],
       validate: (b) => {
         if (!b || typeof b !== 'object' || Array.isArray(b)) return false;
-        const allowed = new Set(['limit', 'offset', 'compareFilters', 'dateRangeFilters', 'fields']);
+        const allowed = new Set(['limit', 'offset', 'compareFilters', 'dateRangeFilters', 'fields', 'sortFields']);
         return Object.keys(b).every((k) => allowed.has(k)) && JSON.stringify(b).length < 4000;
       },
     },

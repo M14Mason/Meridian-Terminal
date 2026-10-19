@@ -29,3 +29,39 @@ jobs:
           MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
           PROXY_URL: ${{ vars.PROXY_URL }}
           MAX_DAYS: ${{ inputs.max_days || '2' }}
+
+  market-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: SEC fails to deliver
+        run: node scripts/jobs/ftd.mjs
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
+          PROXY_URL: ${{ vars.PROXY_URL }}
+      - name: IBKR borrow file
+        run: node scripts/jobs/borrow.mjs
+        env:
+          MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
+          PROXY_URL: ${{ vars.PROXY_URL }}
+
+  congress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pypdf (pinned)
+        run: pip install --no-deps pypdf==5.1.0
+      - name: House periodic transaction reports
+        run: python -I scripts/jobs/congress.py
+        env:
+          MERIDIAN_ADMIN_TOKEN: ${{ secrets.MERIDIAN_ADMIN_TOKEN }}
+          PROXY_URL: ${{ vars.PROXY_URL }}
