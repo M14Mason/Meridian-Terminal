@@ -1,10 +1,10 @@
 # BUILD STATUS
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Current milestone
 
-M3 Data and charts (next)
+M6 Tanker map (in progress)
 
 ## Completed milestones
 
@@ -16,8 +16,9 @@ M3 Data and charts (next)
 
 ## In progress
 
-* **M3 Data and charts, part 1 done:** central token-bucket scheduler (`src/data/scheduler.ts`: priority on screen > alerts > background, exponential backoff capped at 5 minutes, 4x slower polling in hidden tabs, headroom for the health panel) and the indicator library (`shared/indicators.ts`: SMA, EMA, WMA, Wilder RMA, RSI, MACD, stochastic, Bollinger, true range, ATR, Donchian, Keltner, Supertrend, OBV, session VWAP, anchored VWAP, volume profile, Ichimoku, Heikin Ashi, Renko, point and figure, pivots, Fibonacci, auto Fibonacci, swings, support and resistance zones, candlestick patterns, RSI divergence, returns, correlation, beta, total return, pairs spread z-score, gap stats, seasonality, opening range). 33 tests.
-* **M3 remaining (needs owner keys and the deployed proxy to verify live):** provider adapters, quotes, watchlist, charts UI, HP, DES, COMP, multi-chart, replay, ticker tape.
+* M3, M4, M5 DONE (see git log). Proxy deployed with M3 providers; redeploy needed for PortWatch and AIS (`npm run worker:deploy`).
+* **M6 next steps:** (1) deploy Worker (adds AisHub DO, migration v2); (2) generate ADMIN_TOKEN and set it with `wrangler secret put ADMIN_TOKEN` and `gh secret set MERIDIAN_ADMIN_TOKEN` without printing it; (3) build `src/data/adapters/ais.ts` (ticket, WebSocket with reconnect, snapshot fallback) and `src/panels/TankerPanel.tsx` (MapLibre, Natural Earth land from world-atlas land-110m, no tiles; views tankers / chokepoints / all ships with bbox; vessel drawer; dark-ship list; zone counters plus PortWatch daily transits; WTI/Brent from FRED; honest limits text 14.7); (4) optional `.github/workflows/ais-snapshot.yml` gated by repo variable AIS_SNAPSHOT_ENABLED; (5) register TNKR.
+* Then M7 to M12 per docs/BUILD_PROMPT.md.
 
 ## Blocked (owner must do, see docs/OWNER_SETUP.md)
 
@@ -46,6 +47,10 @@ M3 Data and charts (next)
 * **Sync clock skew guard:** the proxy clamps record timestamps to at most 5 minutes in the future so one bad device clock cannot win every conflict.
 * **RSI reference values** are computed independently in Python at full precision from the StockCharts ChartSchool example series (70.4641, 66.2496). The published table is an image that rounds intermediate averages and could not be machine-read, so its numbers are not used.
 * **Indicators live in `shared/`** so the same code runs in the browser, in Web Workers and in the proxy (for server-side alerts in M11).
+* **Owner decisions 2026-10-18:** Reddit omitted (no API access). PatentsView key skipped (asks for address; owner is a minor): use PatentsView bulk files in a monthly Action instead. Copernicus: Sentinel Hub OAuth client (Processing API). FINRA: Public credentials. Extra keys possibly needed later: NASA FIRMS, API Ninjas, Resend (only if Cloudflare email fails), Anthropic key as GitHub secret for M9.
+* **Classic theme palette** retuned to orange labels, white values, FB8B1E / 4AF6C3 / FF433D / 0068FF, green GO, at owner request.
+* **Treasury (fiscaldata, TreasuryDirect) refuse Cloudflare TLS (525)**: auctions via a GitHub Actions cache job (M7).
+* **AIS relay**: AISStream allows 3 connections per account and forbids browser connections; since Sept 2026 uncompressed connections are bandwidth-capped. The relay logs CompressionEnabled to the health feed. IMF PortWatch (ArcGIS, keyless) provides official daily chokepoint transits.
 * **Bundle budget is 150 KB gzip for initial JS** (React alone is about 60 KB gzip).
 * **Pairing security model (M1).** Device tokens: 256-bit random, only SHA-256 stored. Setup secret: constant-time compare, 5 failures per hour then locked (global, so a stranger can delay first pairing but not get in). Codes: one live code at a time, HMAC-peppered hash, 3 minutes, single use (deleted before the token is issued), 5 wrong then destroyed, 15 wrong per 15 minutes globally then locked. Max 10 devices. Revoke deletes the row, so the next request fails.
 * **Rate-limit counters live in Durable Object memory**, not storage, to save row writes. They reset if the object is evicted, which is acceptable for a single owner. `last_seen` writes are throttled to once per 5 minutes per device.
