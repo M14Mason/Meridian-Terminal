@@ -76,7 +76,7 @@ export const FUNCTIONS: FunctionDef[] = [
   F('TNKR', 'Tanker map', 'AIS tanker positions, chokepoints and dark-ship alerts.', { aliases: ['SHIP', 'AIS'], milestone: 'M6', category: 'Maps', mobileTab: 'maps', size: { w: 48, h: 40 }, load: () => import('../panels/TankerPanel') }),
 
   // ----- M7 Analytics -----
-  F('EQS', 'Screener', 'Equity screener and pattern scanner.', { milestone: 'M7', category: 'Analytics' }),
+  F('EQS', 'Screener', 'Screen every NYSE and Nasdaq stock on valuation, quality and growth.', { milestone: 'M7', category: 'Analytics', size: { w: 44, h: 40 }, load: () => import('../panels/ScreenerPanel') }),
   F('BT', 'Backtester', 'Hedge fund strategy library with costs, shuffle test, parameter heatmap and walk-forward.', { aliases: ['BACKTEST'], milestone: 'M7', category: 'Hedge Fund', size: { w: 34, h: 40 }, load: () => import('../panels/BacktestPanel') }),
   F('OMON', 'Options chain', 'Delayed options chain (LIMITED).', { needsSecurity: true, milestone: 'M7', category: 'Options', size: { w: 36, h: 34 }, load: () => import('../panels/OptionsPanels') }),
   F('OSA', 'Option calculator', 'Greeks, implied vol, multi-leg payoff builder (spreads, covered calls, condors).', { milestone: 'M7', category: 'Options', size: { w: 30, h: 30 }, load: () => import('../panels/OptionsPanels') }),
