@@ -8,7 +8,8 @@ export interface ParsedCommand {
   error?: string;
 }
 
-const TICKER_RE = /^[A-Z][A-Z0-9.\-/]{0,9}$/;
+// Tickers, plus long FRED series ids for the SER function (e.g. A191RL1Q225SBEA SER).
+const TICKER_RE = /^[A-Z][A-Z0-9.\-/]{0,19}$/;
 // Market and asset-class words people type out of habit ("AAPL US Equity GP"). Ignored.
 const NOISE = new Set(['US', 'EQUITY', 'EQ', 'GO', '<GO>', 'INDEX', 'CURNCY', 'COMDTY']);
 

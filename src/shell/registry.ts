@@ -57,12 +57,16 @@ export const FUNCTIONS: FunctionDef[] = [
   F('IPO', 'IPO calendar', 'Upcoming and recent IPOs.', { milestone: 'M4', category: 'Calendars', size: { w: 32, h: 24 }, load: () => import('../panels/CalendarPanel') }),
 
   // ----- M5 Macro and heatmaps -----
-  F('HEAT', 'Macro heatmaps', 'US, G7 and global heatmaps with data age on every cell.', { milestone: 'M5', category: 'Macro', mobileTab: 'maps' }),
-  F('SECT', 'Sector heatmap', 'Equity sector performance.', { milestone: 'M5', category: 'Markets' }),
-  F('YCRV', 'Yield curve', 'Treasury curve with animated history.', { aliases: ['GC'], milestone: 'M5', category: 'Macro' }),
-  F('FXC', 'Currency matrix', 'Indicative FX cross rates. Not executable.', { milestone: 'M5', category: 'FX' }),
-  F('BTC', 'Bitcoin', 'Bitcoin price, chart and news.', { milestone: 'M5', category: 'Crypto' }),
-  F('CRYP', 'Crypto sectors', 'Crypto sector heatmap.', { milestone: 'M5', category: 'Crypto' }),
+  F('HEAT', 'Macro heatmaps', 'US, G7 and global heatmaps with data age on every cell.', { milestone: 'M5', category: 'Macro', mobileTab: 'maps', size: { w: 36, h: 40 }, load: () => import('../panels/HeatPanel') }),
+  F('SECT', 'Sector heatmap (ETF proxies)', 'US sector performance from Select Sector SPDR funds.', { milestone: 'M5', category: 'Markets', size: { w: 30, h: 24 }, load: () => import('../panels/SectorPanel') }),
+  F('YCRV', 'Yield curve', 'Treasury curve with animated history.', { aliases: ['GC'], milestone: 'M5', category: 'Macro', size: { w: 30, h: 34 }, load: () => import('../panels/YieldCurvePanel') }),
+  F('FXC', 'Currency matrix', 'Indicative FX cross rates. Not executable.', { milestone: 'M5', category: 'FX', size: { w: 36, h: 26 }, load: () => import('../panels/FxPanel') }),
+  F('BTC', 'Bitcoin', 'Bitcoin price, chart and news.', { milestone: 'M5', category: 'Crypto', size: { w: 30, h: 36 }, load: () => import('../panels/BitcoinPanel') }),
+  F('CRYP', 'Crypto sectors', 'Crypto sector heatmap.', { milestone: 'M5', category: 'Crypto', size: { w: 30, h: 26 }, load: () => import('../panels/CryptoSectorsPanel') }),
+
+  F('SER', 'Economic series', 'Chart any FRED series, for example UNRATE SER. Opened from HEAT rows.', {
+    needsSecurity: true, milestone: 'M5', category: 'Macro', size: { w: 28, h: 24 }, load: () => import('../panels/SeriesPanel'),
+  }),
 
   // ----- M6 Tanker map -----
   F('TNKR', 'Tanker map', 'AIS tanker positions, chokepoints and dark-ship alerts.', { aliases: ['SHIP', 'AIS'], milestone: 'M6', category: 'Maps' }),

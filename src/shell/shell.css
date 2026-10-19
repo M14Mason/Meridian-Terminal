@@ -186,3 +186,14 @@
 .link-btn { color: var(--link); }
 .frame__head { border-bottom: 1px solid var(--hairline); }
 .frame__btn, .frame__tab { background: var(--btn-bg); }
+
+/* Heatmaps and maps (M5) */
+.map-tip { position: absolute; pointer-events: none; background: var(--head-bg); color: var(--value); border: 1px solid var(--text); padding: 2px 6px; font-size: 11px; white-space: nowrap; z-index: 10; }
+.heat td.cell { color: #f0f0f0; text-align: right; transition: background-color 0.4s ease; }
+.heat td.cell.na { color: var(--text-dim); }
+.heat tr.group td { color: var(--text); padding-top: 8px; border-bottom: 1px solid var(--text); }
+.heat tr.clickable { cursor: pointer; }
+.heat tr.clickable:hover td { outline: 1px solid var(--hairline); }
+.legend { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--text-dim); }
+.legend span.sw { display: inline-block; width: 14px; height: 10px; }
+:root[data-lowpower='1'] .heat td.cell { transition: none; }
