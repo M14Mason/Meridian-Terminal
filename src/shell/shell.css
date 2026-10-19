@@ -258,3 +258,18 @@
 .ai-meta { font-size: 11px; margin-top: 6px; }
 .ai-input { max-height: 220px; overflow: auto; white-space: pre-wrap; font-size: 10px; background: var(--panel-bg, #0a0a0a); border: 1px solid var(--border); padding: 4px; }
 .explain { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); padding: 4px; max-height: 60%; overflow: auto; }
+
+/* Glossary hover (121) */
+.has-term { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+
+/* PDF report (127): print every open panel, one after another, on white paper. */
+@media print {
+  .topbar, .favbar, .banner, .status, .frame__btn, .frame__link, .toolbar button, .tabbar, .menu, .cmd { display: none !important; }
+  body, .workspace, .frame, .frame__body { background: #fff !important; color: #000 !important; }
+  .workspace, .workspace__canvas { position: static !important; height: auto !important; overflow: visible !important; }
+  .frame { position: static !important; width: 100% !important; height: auto !important; break-inside: avoid; margin-bottom: 12px; border: 1px solid #999 !important; transform: none !important; }
+  .frame__body { overflow: visible !important; height: auto !important; }
+  a { color: #000 !important; }
+}
+.cmd__mic { background: var(--btn-bg); color: var(--btn-fg); border: 0; padding: 0 8px; cursor: pointer; }
+.cmd__mic[aria-pressed='true'] { color: var(--down); }

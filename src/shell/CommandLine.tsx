@@ -1,6 +1,9 @@
 import { useMemo, useState, type KeyboardEvent, type RefObject } from 'react';
 import { suggestAll } from './command';
 import { isBuilt } from './registry';
+import { listen, speechSupported, spokenToCommand } from './voice';
+import { tickers } from '../data/adapters/sec';
+import { makeTickerMatcher } from '../../shared/thirteenf';
 
 const HISTORY_KEY = 'meridian.cmdHistory';
 
@@ -38,6 +41,16 @@ export function CommandLine({ onRun, inputRef, autoFocus, onDone }: Props) {
   const [histIdx, setHistIdx] = useState(-1);
   const [error, setError] = useState('');
   const items = useMemo(() => (value.trim() ? suggestAll(value) : []), [value]);
+  const [listening, setListening] = useState(false);
+  const [canSpeak] = useState(() => speechSupported());
+
+  // Voice (124): fills the command line; the owner still presses GO.
+  async function voice() {
+    if (listening) return;
+    setListening(true);
+    const match = makeTickerMatcher(await tickers().catch(() => []));
+    listen((t) => { setValue(spokenToCommand(t, (n) => match(n, ''))); setOpen(true); inputRef.current?.focus(); }, () => setListening(false));
+  }
 
   function run(cmd: string, newFrame: boolean) {
     const c = cmd.trim();
@@ -126,6 +139,11 @@ export function CommandLine({ onRun, inputRef, autoFocus, onDone }: Props) {
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onFocus={() => value && setOpen(true)}
       />
+      {canSpeak && (
+        <button className="cmd__mic" onClick={() => void voice()} aria-pressed={listening} aria-label={listening ? 'Listening' : 'Speak a command'} title="Speak a command, for example: Apple chart">
+          {listening ? '●' : '🎙'}
+        </button>
+      )}
       <button className="cmd__go" onClick={() => run(value, false)} aria-label="Run command">
         GO
       </button>

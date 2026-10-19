@@ -165,7 +165,10 @@ export const FUNCTIONS: FunctionDef[] = [
   F('ESG', 'ESG records', 'PARTIAL: pre-filled EPA, OSHA, FEC and SEC record searches for a company.', { needsSecurity: true, milestone: 'M7', category: 'Signals', size: { w: 26, h: 20 }, load: () => import('../panels/LinkPanels') }),
   F('TICK', 'Tick data lab', 'PARTIAL: links to IEX HIST free tick files and their specification.', { milestone: 'M7', category: 'Quant', size: { w: 26, h: 20 }, load: () => import('../panels/LinkPanels') }),
   F('TV', 'Live TV link', 'Opens a public business TV stream in a new tab (no embedding).', { milestone: 'M7', category: 'News', size: { w: 20, h: 10 }, load: () => import('../panels/SignalsPanels') }),
-  F('RPT', 'PDF report', 'Export the current panels as a PDF report.', { milestone: 'M12', category: 'Tools' }),
+  F('GLOS', 'Glossary', 'Plain-English definitions; also shown when you hover table headers.', { aliases: ['GLOSSARY', 'DEF'], milestone: 'M12', category: 'Tools', size: { w: 30, h: 34 }, load: () => import('../panels/MiscPanels') }),
+  F('QCMP', 'Quote comparison (LIMITED)', 'The same stock\'s price from each free source, side by side.', { needsSecurity: true, milestone: 'M12', category: 'Equity', size: { w: 30, h: 14 }, load: () => import('../panels/MiscPanels') }),
+  F('CONC', 'Customer concentration', 'Companies whose filings name a customer at 10% or more of revenue.', { milestone: 'M12', category: 'Filings', size: { w: 34, h: 30 }, load: () => import('../panels/MiscPanels') }),
+  F('RPT', 'PDF report', 'Export the current panels as a PDF report.', { milestone: 'M12', category: 'Tools', size: { w: 24, h: 14 }, load: () => import('../panels/MiscPanels') }),
 
   // ----- M8 AI -----
   F('ASK', 'Ask (AI search)', 'Plain-English search and screener. Shows the parsed query first.', { milestone: 'M8', category: 'AI', size: { w: 30, h: 22 }, load: () => import('../panels/AskPanel') }),
