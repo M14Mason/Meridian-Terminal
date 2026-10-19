@@ -5,6 +5,7 @@ coverage/
 .env
 .env.*
 !.env.example
+!.dev.vars.example
 .dev.vars
 *.local
 .DS_Store

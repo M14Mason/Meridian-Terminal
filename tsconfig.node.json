@@ -1,13 +1,25 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "noEmit": true
+    "types": [
+      "node"
+    ],
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "tests"]
+  "include": [
+    "vite.config.ts",
+    "tests",
+    "worker/src/**/*.test.ts",
+    "worker/src/test-sql.ts",
+    "shared/**/*.test.ts"
+  ]
 }

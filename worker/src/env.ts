@@ -1,0 +1,12 @@
+import type { Vault } from './vault';
+
+export interface Env {
+  VAULT: DurableObjectNamespace<Vault>;
+  ALLOWED_ORIGINS: string;
+  /** "Name email" for the SEC User-Agent header (set as a Worker var by the owner). */
+  SEC_USER_AGENT?: string;
+  SETUP_SECRET?: string;
+  KEY_ENCRYPTION_KEY?: string;
+  // Dashboard-set provider keys (optional; take priority over app-saved keys).
+  [key: string]: unknown;
+}

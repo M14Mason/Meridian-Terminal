@@ -7,3 +7,16 @@ compatibility_date = "2026-10-01"
 [vars]
 # Comma separated. Localhost is for `npm run dev` only.
 ALLOWED_ORIGINS = "https://m14mason.github.io,http://localhost:5173"
+
+# All owner state (devices, pairing codes, encrypted keys, sync, usage) lives in one
+# SQLite-backed Durable Object. Free plan: SQLite backend only (verified 2026-10-18).
+[[durable_objects.bindings]]
+name = "VAULT"
+class_name = "Vault"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Vault"]
+
+[observability]
+enabled = true

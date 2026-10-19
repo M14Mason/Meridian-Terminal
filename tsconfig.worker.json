@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -10,8 +12,17 @@
     "noUnusedParameters": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types"],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
     "noEmit": true
   },
-  "include": ["worker/src", "shared"]
+  "include": [
+    "worker/src",
+    "shared"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "worker/src/test-sql.ts"
+  ]
 }

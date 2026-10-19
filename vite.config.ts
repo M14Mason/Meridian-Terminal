@@ -22,7 +22,11 @@ export default defineConfig({
     {
       // Fill the CSP connect-src with the proxy origin at build time (6.6).
       name: 'csp-proxy-origin',
-      transformIndexHtml: (html) => html.replace('__PROXY_ORIGIN__', proxyOrigin()),
+      // The dev server injects <style> tags, so dev alone allows inline styles. Production stays strict.
+      transformIndexHtml: (html, ctx) => {
+        const out = html.replace('__PROXY_ORIGIN__', proxyOrigin());
+        return ctx.server ? out.replace("style-src 'self'", "style-src 'self' 'unsafe-inline'") : out;
+      },
     },
   ],
   build: {
