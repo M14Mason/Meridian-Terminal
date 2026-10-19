@@ -77,7 +77,7 @@ export const FUNCTIONS: FunctionDef[] = [
 
   // ----- M7 Analytics -----
   F('EQS', 'Screener', 'Equity screener and pattern scanner.', { milestone: 'M7', category: 'Analytics' }),
-  F('BT', 'Backtester', 'Strategy backtests with drawdown and Sharpe.', { milestone: 'M7', category: 'Analytics' }),
+  F('BT', 'Backtester', 'Hedge fund strategy library with costs, shuffle test, parameter heatmap and walk-forward.', { aliases: ['BACKTEST'], milestone: 'M7', category: 'Hedge Fund', size: { w: 34, h: 40 }, load: () => import('../panels/BacktestPanel') }),
   F('OMON', 'Options chain', 'Delayed options chain (LIMITED).', { needsSecurity: true, milestone: 'M7', category: 'Options' }),
   F('OSA', 'Option calculator', 'Greeks, payoff diagrams and spreads.', { milestone: 'M7', category: 'Options' }),
   F('MC', 'Monte Carlo', 'Price path simulation.', { milestone: 'M7', category: 'Quant' }),
@@ -95,7 +95,7 @@ export const FUNCTIONS: FunctionDef[] = [
   F('SQZ', 'Short squeeze radar', 'Short interest, borrow fee and relative volume ranked together.', { milestone: 'M7', category: 'Hedge Fund' }),
   F('MARB', 'Merger arbitrage', 'Pending deals from 8-K and merger proxies with spread to your entered offer price.', { milestone: 'M7', category: 'Hedge Fund' }),
   F('SPIN', 'Spin-offs', 'Form 10 spin-off registrations from EDGAR.', { milestone: 'M7', category: 'Hedge Fund' }),
-  F('STRT', 'Strategy library', 'Hedge fund style strategies with rule cards and live signals.', { aliases: ['STRAT'], milestone: 'M7', category: 'Hedge Fund' }),
+  F('STRT', 'Strategy library', 'Hedge fund style strategies with rule cards (opens the backtester).', { aliases: ['STRAT'], milestone: 'M7', category: 'Hedge Fund', size: { w: 34, h: 40 }, load: () => import('../panels/BacktestPanel') }),
   F('MODEL', 'Meridian rules index', 'Transparent rules-based factor index, the baseline for the Claude portfolio.', { milestone: 'M7', category: 'Hedge Fund' }),
   F('CMP', 'Claude model portfolio', 'Hypothetical portfolio picked and managed by Claude, tracked vs SPY.', { milestone: 'M8', category: 'AI' }),
   F('RISK', 'Risk and stress', 'VaR, CVaR, stress replays (2008, 2020, 2022), liquidity and drawdowns for any list.', { milestone: 'M7', category: 'Risk' }),
@@ -108,7 +108,7 @@ export const FUNCTIONS: FunctionDef[] = [
   F('SEAS', 'Seasonality', 'Average monthly returns and hit rates.', { needsSecurity: true, milestone: 'M7', category: 'Charts' }),
   F('GAPS', 'Gap statistics', 'Opening gaps and how often they fill.', { needsSecurity: true, milestone: 'M7', category: 'Charts' }),
   F('ORB', 'Opening range', 'Opening range breakout tracker and intraday volume curve.', { needsSecurity: true, milestone: 'M7', category: 'Charts' }),
-  F('LDR', 'Strategy leaderboard', 'Saved backtests ranked (backtests only, no trading).', { milestone: 'M7', category: 'Quant' }),
+  F('LDR', 'Strategy leaderboard', 'Saved backtests ranked (backtests only, no trading).', { milestone: 'M7', category: 'Quant', size: { w: 34, h: 24 }, load: () => import('../panels/LeaderboardPanel') }),
   F('DCF', 'DCF and WACC', 'Discounted cash flow and cost of capital calculators from SEC data.', { needsSecurity: true, milestone: 'M7', category: 'Equity' }),
   F('RV', 'Relative value', 'Valuation ratios vs peers.', { needsSecurity: true, milestone: 'M7', category: 'Equity' }),
   F('ESH', 'Earnings surprises', 'Earnings surprise history.', { needsSecurity: true, milestone: 'M7', category: 'Equity' }),

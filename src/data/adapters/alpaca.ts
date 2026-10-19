@@ -75,8 +75,25 @@ export async function bars(symbol: string, tf: Timeframe, start: string, end?: s
   return { data: out, fetchedAt, fromCache: false };
 }
 
-/** Daily bars for several symbols at once (COMP, correlation, breadth). */
-export async function multiBars(symbols: string[], tf: Timeframe, start: string): Promise<Fetched<Record<string, Bar[]>>> {
+/**
+ * Daily bars for several symbols at once (COMP, correlation, breadth, backtests).
+ * `history: true` asks for the all-exchange SIP feed ending 16 minutes ago (allowed on the free
+ * plan for historical data); if refused, it falls back to IEX.
+ */
+export async function multiBars(symbols: string[], tf: Timeframe, start: string, history = false): Promise<Fetched<Record<string, Bar[]>> & { feed: string }> {
+  if (history) {
+    try {
+      const r = await multiBarsFeed(symbols, tf, start, 'sip', new Date(Date.now() - 16 * 60_000).toISOString());
+      return { ...r, feed: 'SIP (all exchanges)' };
+    } catch {
+      // fall through to IEX
+    }
+  }
+  const r = await multiBarsFeed(symbols, tf, start, 'iex');
+  return { ...r, feed: 'IEX' };
+}
+
+async function multiBarsFeed(symbols: string[], tf: Timeframe, start: string, feed: 'iex' | 'sip', end?: string): Promise<Fetched<Record<string, Bar[]>>> {
   const out: Record<string, Bar[]> = {};
   let token: string | undefined;
   let fetchedAt: number;
@@ -86,15 +103,16 @@ export async function multiBars(symbols: string[], tf: Timeframe, start: string)
       symbols: symbols.join(','),
       timeframe: tf,
       start,
+      end,
       limit: 10000,
       adjustment: 'all',
-      feed: 'iex',
+      feed,
       page_token: token,
     });
     fetchedAt = r.fetchedAt;
     for (const [s, list] of Object.entries(r.data.bars ?? {})) (out[s] ??= []).push(...list.map(toBar));
     token = r.data.next_page_token ?? undefined;
-  } while (token && ++pages < 20);
+  } while (token && ++pages < 60);
   return { data: out, fetchedAt, fromCache: false };
 }
 
