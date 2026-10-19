@@ -1,6 +1,7 @@
 // Server-side alert engine (BUILD_PROMPT 18.3): runs on Cron Triggers so alerts fire with no device open.
 // Rules come from the owner's synced "alerts" collection. Data comes through the same allowlisted gateway.
 // Email goes through Resend's free tier (Cloudflare Email Service needs a custom domain the proxy does not have).
+import { isFredFomc, parseFomcCalendar } from '../../shared/fomc';
 import { checkQuote, coolingDown, DEFAULT_SETTINGS, inQuietHours, matchesKeyword, validRule, type AlertSettings, type Fired, type Rule } from '../../shared/alerts';
 import { spendSpike } from '../../shared/ai';
 import { rsi } from '../../shared/indicators';
@@ -114,11 +115,16 @@ export async function runAlerts(d: AlertDeps, mode: 'market' | 'hourly' | 'manua
     }
     const mr = rules.filter((x) => x.r.type === 'macro');
     if (mr.length) {
-      const today = new Date(now).toISOString().slice(0, 10);
+      const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
       const rel = await gw<{ release_dates: { release_name: string; date: string }[] }>(d, 'fred', '/fred/releases/dates', `?realtime_start=${today}&realtime_end=${today}&include_release_dates_with_no_data=true&file_type=json`);
+      // FRED's FOMC entry appears almost daily (data updates, not meetings); use the Fed's calendar instead.
+      const list = (rel?.release_dates ?? []).filter((x) => !isFredFomc(x.release_name));
+      const fedHtml = await gw<string>(d, 'fed', '/monetarypolicy/fomccalendars.htm');
+      const fomc = typeof fedHtml === 'string' ? parseFomcCalendar(fedHtml).find((m) => m.statement === today) : undefined;
+      if (fomc) list.push({ release_name: `FOMC statement at 2:00 PM ET (11:00 AM PT)${fomc.sep ? ' with projections' : ''}`, date: today });
       for (const { id, r } of mr) {
-        const hit = rel?.release_dates.find((x) => x.date === today && matchesKeyword(x.release_name, r.keyword!));
-        if (hit) fire(id, r, `Today: ${hit.release_name}`, 'FRED release calendar');
+        const hit = list.find((x) => x.date === today && matchesKeyword(x.release_name, r.keyword!));
+        if (hit) fire(id, r, `Today: ${hit.release_name}`, 'FRED release calendar and federalreserve.gov');
       }
     }
     // System alerts: portfolio stale or disconnected, AI spend spike.

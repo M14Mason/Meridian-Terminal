@@ -39,14 +39,14 @@ function Eco() {
     <>
       <DataStatus state={state} keyName="FRED" empty={rows.length === 0} />
       <table className="grid-table">
-        <thead><tr><th>Date</th><th>Release</th><th>FRED name</th></tr></thead>
+        <thead><tr><th>Date</th><th>Release</th><th>Source name</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={`${r.release_id}-${r.date}`}><td>{r.date}</td><td className="accent">{r.key}</td><td className="muted">{r.release_name}</td></tr>
           ))}
         </tbody>
       </table>
-      <div className="disclaimer">Release dates from FRED (St. Louis Fed). Times are not included; most US releases are 8:30 New York time. Consensus forecasts are not free; nowcast comparisons arrive with the macro panels (M5).</div>
+      <div className="disclaimer">Release dates from FRED (St. Louis Fed); FOMC dates from the Fed&apos;s own calendar. Times are not included unless shown; most US releases are 8:30 AM New York time (5:30 AM Pacific). Consensus forecasts are not free; nowcast comparisons arrive with the macro panels (M5).</div>
     </>
   );
 }
