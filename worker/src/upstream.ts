@@ -75,6 +75,8 @@ const SEC_UA = async (key: KeyResolver) => {
   return ua ? { 'user-agent': `MeridianTerminal/1.0 ${ua}` } : null;
 };
 
+// Treasury (fiscaldata and TreasuryDirect) is NOT here: both refuse TLS from Cloudflare's network
+// (HTTP 525, tested 2026-10-18). Auction data comes from a GitHub Actions cache job instead (5.3).
 const SPECS: Spec[] = [
   {
     id: 'finnhub',
@@ -171,13 +173,6 @@ const SPECS: Spec[] = [
     paths: [/^\/CurrentStorms\.json$/],
     auth: { kind: 'none' },
     ttl: [[/./, 900]],
-  },
-  {
-    id: 'treasury',
-    host: 'api.fiscaldata.treasury.gov',
-    paths: [/^\/services\/api\/fiscal_service\/v\d\/accounting\/(od\/auctions_query|dts\/operating_cash_balance|od\/avg_interest_rates)$/],
-    auth: { kind: 'none' },
-    ttl: [[/./, 3600]],
   },
   {
     id: 'nyfed',
