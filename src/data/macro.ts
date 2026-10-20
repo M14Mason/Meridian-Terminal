@@ -9,6 +9,11 @@ export interface UsMetric {
   good: Good;
   freq: 'D' | 'W' | 'M' | 'Q';
   note?: string;
+  /**
+   * Days after the period START (the date FRED stamps) before the value counts as late. Only for series whose
+   * publication lag is longer than the frequency default allows (see STALE_DAYS in HeatPanel).
+   */
+  maxAge?: number;
 }
 
 export const US_METRICS: { group: string; rows: UsMetric[] }[] = [
@@ -16,10 +21,10 @@ export const US_METRICS: { group: string; rows: UsMetric[] }[] = [
     group: 'Growth',
     rows: [
       { id: 'A191RL1Q225SBEA', label: 'Real GDP growth (SAAR)', unit: '%', good: 'high', freq: 'Q' },
-      { id: 'GDPNOW', label: 'GDPNow nowcast', unit: '%', good: 'high', freq: 'Q', note: 'Atlanta Fed model estimate of current quarter' },
+      { id: 'GDPNOW', label: 'GDPNow nowcast', unit: '%', good: 'high', freq: 'Q', note: 'Atlanta Fed model estimate of current quarter', maxAge: 135 },
       { id: 'INDPRO', label: 'Industrial production YoY', units: 'pc1', unit: '%', good: 'high', freq: 'M' },
       { id: 'RSAFS', label: 'Retail sales YoY', units: 'pc1', unit: '%', good: 'high', freq: 'M' },
-      { id: 'UMCSENT', label: 'Consumer sentiment (UMich)', unit: 'idx', good: 'high', freq: 'M' },
+      { id: 'UMCSENT', label: 'Consumer sentiment (UMich)', unit: 'idx', good: 'high', freq: 'M', note: 'FRED posts UMich about a month after release (licensing), so it trails the news by one reading', maxAge: 110 },
     ],
   },
   {
@@ -28,7 +33,7 @@ export const US_METRICS: { group: string; rows: UsMetric[] }[] = [
       { id: 'UNRATE', label: 'Unemployment rate', unit: '%', good: 'low', freq: 'M' },
       { id: 'PAYEMS', label: 'Payrolls monthly change', units: 'chg', unit: 'k', good: 'high', freq: 'M' },
       { id: 'ICSA', label: 'Initial jobless claims', unit: '', good: 'low', freq: 'W' },
-      { id: 'JTSJOL', label: 'Job openings (JOLTS)', unit: 'k', good: 'high', freq: 'M' },
+      { id: 'JTSJOL', label: 'Job openings (JOLTS)', unit: 'k', good: 'high', freq: 'M', note: 'Published about 5 weeks after the month ends', maxAge: 130 },
     ],
   },
   {
@@ -36,7 +41,7 @@ export const US_METRICS: { group: string; rows: UsMetric[] }[] = [
     rows: [
       { id: 'CPIAUCSL', label: 'CPI YoY', units: 'pc1', unit: '%', good: 'low', freq: 'M' },
       { id: 'CPILFESL', label: 'Core CPI YoY', units: 'pc1', unit: '%', good: 'low', freq: 'M' },
-      { id: 'PCEPILFE', label: 'Core PCE YoY', units: 'pc1', unit: '%', good: 'low', freq: 'M' },
+      { id: 'PCEPILFE', label: 'Core PCE YoY', units: 'pc1', unit: '%', good: 'low', freq: 'M', maxAge: 100 },
       { id: 'T10YIE', label: '10y breakeven inflation', unit: '%', good: 'neutral', freq: 'D' },
     ],
   },
@@ -57,7 +62,7 @@ export const US_METRICS: { group: string; rows: UsMetric[] }[] = [
     group: 'Housing and energy',
     rows: [
       { id: 'HOUST', label: 'Housing starts', unit: 'k', good: 'high', freq: 'M' },
-      { id: 'CSUSHPINSA', label: 'Home prices YoY (Case-Shiller)', units: 'pc1', unit: '%', good: 'neutral', freq: 'M' },
+      { id: 'CSUSHPINSA', label: 'Home prices YoY (Case-Shiller)', units: 'pc1', unit: '%', good: 'neutral', freq: 'M', note: 'Published about two months after the month ends', maxAge: 130 },
       { id: 'DCOILWTICO', label: 'WTI crude', unit: '$', good: 'neutral', freq: 'D' },
     ],
   },

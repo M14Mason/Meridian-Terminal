@@ -195,7 +195,8 @@
 .heat td.cell.na { color: var(--text-dim); }
 .heat tr.group td { color: var(--text); padding-top: 8px; border-bottom: 1px solid var(--text); }
 .heat tr.clickable { cursor: pointer; }
-.heat tr.clickable:hover td { outline: 1px solid var(--hairline); }
+.heat tr.clickable:hover td:not(.cell) { background: var(--hairline); }
+.heat tr.clickable:hover td.cell { box-shadow: inset 0 0 0 1px var(--text-dim); }
 .legend { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--text-dim); }
 .legend span.sw { display: inline-block; width: 14px; height: 10px; }
 :root[data-lowpower='1'] .heat td.cell { transition: none; }

@@ -63,7 +63,9 @@ export default function FredDashPanel({ code, run }: PanelProps) {
               const last = obs?.at(-1);
               const prev = obs?.at(-2);
               const ya = last ? [...(obs ?? [])].reverse().find((o) => Date.parse(last.date) - Date.parse(o.date) >= 360 * 86_400_000) : undefined;
-              const stale = last ? (Date.now() - Date.parse(last.date)) / 86_400_000 > 120 : false;
+              // Late = older than two of the series' own periods plus a publication-lag margin (FRED dates the period start).
+              const gap = last && prev ? (Date.parse(last.date) - Date.parse(prev.date)) / 86_400_000 : 30;
+              const stale = last ? (Date.now() - Date.parse(last.date)) / 86_400_000 > gap * 2 + (gap >= 28 ? 45 : 7) : false;
               return (
                 <tr key={key(r)} className="clickable" onClick={() => run(`${r.id} SER`)} title={`FRED ${r.id}${r.units ? ` (${r.units === 'pc1' ? 'YoY %' : 'change'})` : ''}`}>
                   <td>{r.label} <span className="muted">{r.unit}</span></td>
@@ -71,7 +73,7 @@ export default function FredDashPanel({ code, run }: PanelProps) {
                   <td className="num">{show(r, prev?.value)}</td>
                   <td className="num">{show(r, ya?.value)}</td>
                   <td>{obs && <Spark obs={obs} />}</td>
-                  <td className={stale ? 'down' : 'muted'}>{last?.date ?? (state.data ? 'n/a' : '')}{stale ? ' STALE' : ''}</td>
+                  <td className={stale ? 'down' : 'muted'}>{last?.date ?? (state.data ? 'n/a' : '')}{stale ? ' LATE' : ''}</td>
                 </tr>
               );
             }),

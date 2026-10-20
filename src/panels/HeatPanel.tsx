@@ -14,7 +14,10 @@ import type { PanelProps } from '../shell/types';
 const CountryMap = lazy(() => import('../three/CountryMap').then((m) => ({ default: m.CountryMap })));
 
 type Scope = 'US' | 'G7' | 'GLOBAL';
-const STALE_DAYS: Record<UsMetric['freq'], number> = { D: 7, W: 14, M: 75, Q: 160 };
+// FRED dates a value by the START of its period, and agencies publish weeks later. So "late" means older than
+// period length + normal publication lag + a grace margin. Example: Q2 GDP (dated Apr 1) stays the newest print
+// until the Q3 advance estimate near the end of October, about 210 days later.
+const STALE_DAYS: Record<UsMetric['freq'], number> = { D: 7, W: 16, M: 80, Q: 225 };
 const daysOld = (d: string) => (Date.now() - Date.parse(d)) / 86_400_000;
 const yearsAgo = (y: number) => new Date(Date.now() - y * 365.25 * 86_400_000).toISOString().slice(0, 10);
 
@@ -79,15 +82,15 @@ function UsScope({ run }: { run: PanelProps['run'] }) {
               const yearAgo = last ? [...(obs ?? [])].reverse().find((o) => daysOld(o.date) >= daysOld(last.date) + 360) : undefined;
               const p = last ? percentile(last.value, obs!.map((o) => o.value)) : NaN;
               const score = goodness(p, m.good);
-              const stale = last ? daysOld(last.date) > STALE_DAYS[m.freq] : false;
+              const stale = last ? daysOld(last.date) > (m.maxAge ?? STALE_DAYS[m.freq]) : false;
               return (
-                <tr key={m.id} className="clickable" onClick={() => run(`${m.id} SER`)} title={m.note ?? `FRED ${m.id}. Click for the chart.`}>
-                  <td>{m.label}</td>
+                <tr key={m.id} className="clickable" onClick={() => run(`${m.id} SER`)}>
+                  <td title={m.note ? `${m.note}. FRED ${m.id}` : `FRED ${m.id}`}>{m.label}</td>
                   <td className={`cell ${last ? '' : 'na'}`} style={{ background: heatColor(score, m.good === 'neutral') }}>{last ? fmt(last.value, m.unit === 'k' || m.unit === '' ? 0 : 2) : 'n/a'}</td>
                   <td className="num">{prev ? fmt(prev.value, m.unit === 'k' || m.unit === '' ? 0 : 2) : '-'}</td>
                   <td className="num">{yearAgo ? fmt(yearAgo.value, m.unit === 'k' || m.unit === '' ? 0 : 2) : '-'}</td>
                   <td className="num">{Number.isFinite(p) ? `${Math.round(p * 100)}` : '-'}</td>
-                  <td className={stale ? 'down' : 'muted'}>{last ? `${last.date}${stale ? ' STALE' : ''}` : '-'}</td>
+                  <td className={stale ? 'down' : 'muted'} title={stale ? 'Older than this series normally gets: the next release looks late or FRED has not updated' : 'Date is the start of the period the value covers'}>{last ? `${last.date}${stale ? ' LATE' : ''}` : '-'}</td>
                 </tr>
               );
             }),
@@ -95,7 +98,7 @@ function UsScope({ run }: { run: PanelProps['run'] }) {
         </tbody>
       </table>
       <div className="disclaimer">
-        Source: FRED (BEA, BLS, Fed, ICE BofA, Freddie Mac, UMich, Atlanta Fed GDPNow, S&amp;P CoreLogic Case-Shiller). Color = position in the series' own 10-year range, flipped where lower is better.
+        Source: FRED (BEA, BLS, Fed, ICE BofA, Freddie Mac, UMich, Atlanta Fed GDPNow, S&amp;P CoreLogic Case-Shiller). Color = position in the series' own 10-year range, flipped where lower is better. Dates are the start of the period covered (2026-09-01 = September data); LATE means older than that series' normal publication lag. Click a row for its chart.
         GDPNow is a model nowcast, not an official number. Consensus forecasts are not free, so surprises are shown as nowcast vs latest actual: GDPNow minus last GDP print.
       </div>
     </>
