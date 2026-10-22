@@ -21,7 +21,7 @@ import { hmacHex, timingSafeEqual } from './crypto';
 const MAX_BODY = 16 * 1024;
 // Relay instance name. Bump it to start a fresh relay on the new code at once (a running instance keeps its
 // old code while devices stay connected). v2: AISStream frames arrive as Blobs. v3: permessage-deflate compression. v4: warm mode and saved ship registry (2026-10-19).
-const AIS_INSTANCE = 'global-v4';
+const AIS_INSTANCE = 'global-v5';
 // Sync batches carry up to 200 records; individual records are capped at 32 KB in validateRecord.
 const SYNC_MAX_BODY = 1024 * 1024;
 

@@ -95,3 +95,37 @@ export function matchEvent(e: KEvent, q: string): boolean {
   if (!s) return true;
   return [e.ticker, e.title, e.sub, ...e.markets.flatMap((m) => [m.ticker, m.label])].some((x) => x.toLowerCase().includes(s));
 }
+
+// ---------- Fed decision odds (series KXFEDDECISION, one event per FOMC meeting) ----------
+export interface FedMeetingOdds {
+  ticker: string;
+  date: string;
+  /** Market-implied chance per outcome, in percent, renormalized to sum to 100. */
+  odds: { label: string; bp: number; chance: number }[];
+  /** Probability-weighted change at this meeting, in basis points (">25" outcomes counted as 50). */
+  expectedBp: number;
+}
+
+const BP: [RegExp, number][] = [[/cut\s*>\s*25/i, -50], [/cut\s*25/i, -25], [/maintain|hold|no change/i, 0], [/hike\s*25/i, 25], [/hike\s*>\s*25/i, 50]];
+const MONTHS: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+
+/** "On Oct 28, 2026" to "2026-10-28". */
+export function meetingDate(sub: string): string | null {
+  const m = /([A-Z][a-z]{2})[a-z]*\s+(\d{1,2}),\s*(\d{4})/.exec(sub);
+  const mm = m ? MONTHS[m[1]!.toLowerCase()] : undefined;
+  return m && mm ? `${m[3]}-${mm}-${m[2]!.padStart(2, '0')}` : null;
+}
+
+export function fedOdds(events: KEvent[]): FedMeetingOdds[] {
+  const out: FedMeetingOdds[] = [];
+  for (const e of events) {
+    const date = meetingDate(e.sub) ?? meetingDate(e.title);
+    if (!date) continue;
+    const raw = e.markets.map((m) => ({ label: m.label, bp: BP.find(([re]) => re.test(m.label))?.[1], chance: m.chance ?? 0 })).filter((x): x is { label: string; bp: number; chance: number } => x.bp != null);
+    const total = raw.reduce((s, x) => s + x.chance, 0);
+    if (!raw.length || total <= 0) continue;
+    const odds = raw.map((x) => ({ ...x, chance: (x.chance / total) * 100 })).sort((a, b) => a.bp - b.bp);
+    out.push({ ticker: e.ticker, date, odds, expectedBp: odds.reduce((s, x) => s + (x.chance / 100) * x.bp, 0) });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}

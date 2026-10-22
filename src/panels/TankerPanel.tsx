@@ -232,8 +232,8 @@ export default function TankerPanel(_: PanelProps) {
     return out;
   }, [pw.data]);
 
-  const why = frame?.status === 'no-key' ? 'relay has no AISStream key' : frame?.status === 'error' ? 'relay error' : conn !== 'open' ? 'relay unreachable' : 'relay starting';
-  const statusText = live ? 'LIVE' : snap ? `SNAPSHOT ${timeLocal(snap.at).slice(0, 5)} ${tzLabel()}, NOT LIVE (${why})` : frame?.status === 'no-key' ? 'NO AISSTREAM KEY' : conn === 'connecting' || frame?.status === 'connecting' ? 'CONNECTING' : 'OFFLINE';
+  const why = frame?.status === 'budget' ? 'daily free-plan budget used, resumes 5 PM Pacific' : frame?.status === 'no-key' ? 'relay has no AISStream key' : frame?.status === 'error' ? 'relay error' : conn !== 'open' ? 'relay unreachable' : 'relay starting';
+  const statusText = live ? 'LIVE' : snap ? `SNAPSHOT ${timeLocal(snap.at).slice(0, 5)} ${tzLabel()}, NOT LIVE (${why})` : frame?.status === 'budget' ? 'PAUSED: DAILY FREE LIMIT (resumes 5 PM PT)' : frame?.status === 'no-key' ? 'NO AISSTREAM KEY' : conn === 'connecting' || frame?.status === 'connecting' ? 'CONNECTING' : 'OFFLINE';
 
   return (
     <div className="panel-fill tnkr">
@@ -242,7 +242,7 @@ export default function TankerPanel(_: PanelProps) {
           <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{v === 'all' ? 'ALL SHIPS (VISIBLE AREA)' : v.toUpperCase()}</button>
         ))}
         <span className={live ? 'up' : 'down'} style={{ fontWeight: 600 }}>{statusText}</span>
-        {frame && <span className="muted">{frame.msgs.toLocaleString()} msgs{frame.compression === false ? ', uncompressed: may be throttled' : ''}</span>}
+        {frame && <span className="muted" title="Free-plan protection: the relay stops for the day at this many messages so the rest of the proxy keeps working. Coverage: oil chokepoints and main export and import regions only.">{frame.msgs.toLocaleString()} msgs{frame.today != null && frame.budget ? ` · today ${Math.round((frame.today / frame.budget) * 100)}% of daily budget` : ''}{frame.compression === false ? ', uncompressed: may be throttled' : ''}</span>}
         {(wti.data || brent.data) && (
           <span className="muted">
             WTI <span style={{ color: 'var(--value)' }}>{fmt(wti.data?.value)}</span> ({wti.data?.date}) · Brent <span style={{ color: 'var(--value)' }}>{fmt(brent.data?.value)}</span>

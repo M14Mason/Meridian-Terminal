@@ -10,7 +10,10 @@ export interface StaticInfo { n?: string; d?: string; dr?: number; i?: number; c
 export interface AisFrame {
   type: 'full' | 'delta';
   at: number;
-  status: 'idle' | 'connecting' | 'live' | 'error' | 'no-key';
+  status: 'idle' | 'connecting' | 'live' | 'error' | 'no-key' | 'budget';
+  /** Upstream messages today (UTC) and the relay's daily cap. */
+  today?: number;
+  budget?: number;
   compression: boolean | null;
   upSince: number;
   msgs: number;

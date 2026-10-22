@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chanceOf, matchEvent, normEvents, normMarket, normSearch } from './kalshi';
+import { chanceOf, fedOdds, matchEvent, meetingDate, normEvents, normMarket, normSearch } from './kalshi';
 
 describe('kalshi', () => {
   it('parses the new dollar and fixed-point string fields', () => {
@@ -24,5 +24,21 @@ describe('kalshi', () => {
     expect(ev[0]!.markets[0]).toMatchObject({ label: 'Taiwan', chance: 49.5 });
     expect(matchEvent(ev[0]!, 'taiwan')).toBe(true);
     expect(matchEvent(ev[0]!, 'tesla')).toBe(false);
+  });
+});
+
+describe('fed odds', () => {
+  it('parses meeting dates and computes renormalized odds and expected change', () => {
+    expect(meetingDate('On Oct 28, 2026')).toBe('2026-10-28');
+    const ev = normEvents({ events: [{ event_ticker: 'KXFEDDECISION-26OCT', title: 'Fed decision in Oct 2026?', sub_title: 'On Oct 28, 2026', category: 'Economics', markets: [
+      { ticker: 'H', yes_sub_title: 'Fed maintains rate', yes_bid_dollars: '0.88', yes_ask_dollars: '0.89' },
+      { ticker: 'U', yes_sub_title: 'Hike 25bps', yes_bid_dollars: '0.11', yes_ask_dollars: '0.12' },
+      { ticker: 'C', yes_sub_title: 'Cut 25bps', yes_bid_dollars: '0.00', yes_ask_dollars: '0.01' },
+    ] }] });
+    const [m] = fedOdds(ev);
+    expect(m!.date).toBe('2026-10-28');
+    expect(m!.odds.reduce((s, x) => s + x.chance, 0)).toBeCloseTo(100, 6);
+    expect(m!.expectedBp).toBeGreaterThan(2.5);
+    expect(m!.expectedBp).toBeLessThan(3.2);
   });
 });

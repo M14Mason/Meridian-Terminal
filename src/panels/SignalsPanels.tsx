@@ -2,7 +2,8 @@
 // CROP, FOMC, MEVT, CACT, TV (catalog 58, 60, 65, 79, 81, 85 to 98; owner ideas 5 and 9).
 import { useEffect, useMemo, useState } from 'react';
 import { changeRatio, wordDiff } from '../../shared/diff';
-import { matchEvent, normEvents, normSearch, type KEvent } from '../../shared/kalshi';
+import { fedOdds, matchEvent, normEvents, normSearch, type KEvent } from '../../shared/kalshi';
+import { latest as fredLatest } from '../data/adapters/fred';
 import { profile } from '../data/adapters/sec';
 import { direct } from '../data/adapters/direct';
 import { up, upPost } from '../data/client';
@@ -356,6 +357,52 @@ function Crop() {
   );
 }
 
+// ---------- FOMC: market-implied rate odds (Kalshi) ----------
+function FedOdds() {
+  const st = useData('fomc:odds', async () => {
+    const [r, tgt] = await Promise.all([
+      up<{ events?: Record<string, unknown>[] }>('kalshi', '/trade-api/v2/events', { series_ticker: 'KXFEDDECISION', status: 'open', with_nested_markets: 'true', limit: 20 }),
+      fredLatest('DFEDTARU').catch(() => null),
+    ]);
+    return { ...r, data: { meetings: fedOdds(normEvents(r.data)), upper: tgt?.data ?? null } };
+  }, { source: 'Kalshi, FRED', everyMs: 5 * 60_000 });
+  const d = st.data;
+  // Running total of expected moves, meeting by meeting.
+  const cums = (d?.meetings ?? []).reduce<number[]>((acc, m) => [...acc, (acc.at(-1) ?? 0) + m.expectedBp], []);
+  const cols: [number, string][] = [[-50, 'Cut 50+'], [-25, 'Cut 25'], [0, 'Hold'], [25, 'Hike 25'], [50, 'Hike 50+']];
+  return (
+    <>
+      <h4 className="accent" style={{ fontSize: 12, margin: '4px 0 2px' }}>MARKET ODDS BY MEETING (KALSHI)</h4>
+      <DataStatus state={st} />
+      {d && d.meetings.length > 0 && (
+        <table className="grid-table">
+          <thead><tr><th>Statement</th>{cols.map(([, l]) => <th key={l} className="num">{l}</th>)}<th className="num">Exp. move</th><th className="num">Cumulative</th>{d.upper && <th className="num">Implied upper</th>}</tr></thead>
+          <tbody>{d.meetings.map((m, i) => {
+            const cum = cums[i]!;
+            const top = Math.max(...m.odds.map((o) => o.chance));
+            return (
+              <tr key={m.ticker}>
+                <td>{m.date} <span className="muted">11:00 AM PT</span></td>
+                {cols.map(([bp]) => {
+                  const o = m.odds.find((x) => x.bp === bp);
+                  return <td key={bp} className={`num ${o && o.chance === top ? 'accent' : 'muted'}`}>{o ? `${fmt(o.chance, o.chance < 10 ? 1 : 0)}%` : '-'}</td>;
+                })}
+                <td className={`num ${dir(m.expectedBp)}`}>{m.expectedBp >= 0 ? '+' : ''}{fmt(m.expectedBp, 1)} bp</td>
+                <td className={`num ${dir(cum)}`}>{cum >= 0 ? '+' : ''}{fmt(cum, 0)} bp</td>
+                {d.upper && <td className="num">{fmt(d.upper.value + cum / 100, 2)}%</td>}
+              </tr>
+            );
+          })}</tbody>
+        </table>
+      )}
+      {d && !d.meetings.length && <p className="muted">Kalshi has no open Fed decision markets right now.</p>}
+      <p className="muted">
+        Chance per outcome from Kalshi prices (bid/ask midpoint, renormalized to 100%). Expected move counts 50+ outcomes as 50 bp, so it is approximate. Implied upper = current target-range top{d?.upper ? ` (${fmt(d.upper.value, 2)}% on ${d.upper.date}, FRED DFEDTARU)` : ''} plus the cumulative expected move. A free stand-in for CME FedWatch, priced by a different crowd. Model estimate. Not financial advice.
+      </p>
+    </>
+  );
+}
+
 // ---------- FOMC: statement diff ----------
 function Fomc() {
   const st = useData('fomc', async () => {
@@ -381,6 +428,8 @@ function Fomc() {
   const fmtD = (d: string) => `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
   return (
     <>
+      <FedOdds />
+      <h4 className="accent" style={{ fontSize: 12, margin: '8px 0 2px' }}>LAST STATEMENT VS THE ONE BEFORE</h4>
       <DataStatus state={st} />
       {st.data && (
         <>
